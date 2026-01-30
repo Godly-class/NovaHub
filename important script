@@ -111,32 +111,6 @@ HomeTab:Paragraph({
     Desc = "歡迎，" .. LocalPlayer.Name .. "！\n🎯 準備好提升你的遊戲體驗了嗎！"
 })
 
-HomeTab:Section({ Title = "📊 伺服器狀態", TextSize = 18 })
-HomeTab:Divider()
-
-local ServerStatusLabel = HomeTab:Paragraph({
-    Title = "正在載入伺服器資訊...",
-    Desc = "Nova中心 - 連接中"
-})
-
-ServerStatusLabel.Instance.BackgroundColor3 = Color3.fromRGB(173, 216, 230)  -- 淺藍色背景
-ServerStatusLabel.Instance.BackgroundTransparency = 0.7
-
-spawn(function()
-    while true do
-        local currentPlayers = #Players:GetPlayers()
-        local maxPlayers = Players.MaxPlayers
-        local serverName = game.JobId ~= "" and game.JobId or "本地伺服器"
-        local placeId = game.PlaceId
-        
-        ServerStatusLabel:Set({
-            Title = "伺服器名稱: " .. serverName,
-            Desc = "Place ID: " .. placeId .. "\n人數: " .. currentPlayers .. " / " .. maxPlayers
-        })
-        wait(5)
-    end
-end)
-
 HomeTab:Section({ Title = "📊 即時數據", TextSize = 18 })
 HomeTab:Divider()
 
@@ -151,10 +125,47 @@ spawn(function()
         local ping = math.round(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
         
         StatsLabel:Set({
-            Title = string.format("⚡ %d FPS   |   📡 %d ms Ping", fps, ping),
-            Desc = "Nova中心 - 流暢運行中"
-        })
-        wait(2)
+            Title = string.format("⚡ %d FPS   |   📡 %d ms PHomeTab:Section({ Title = "📊 伺服器狀態", TextSize = 18 })
+HomeTab:Divider()
+
+-- 用 Frame 包裝，避免 Paragraph 的屬性問題
+local ServerFrame = Instance.new("Frame")
+ServerFrame.Size = UDim2.new(1, -20, 0, 80)
+ServerFrame.Position = UDim2.new(0, 10, 0, 0)
+ServerFrame.BackgroundColor3 = Color3.fromRGB(173, 216, 230)  -- 淺藍色
+ServerFrame.BackgroundTransparency = 0.7
+ServerFrame.BorderSizePixel = 0
+ServerFrame.Parent = HomeTab.Instance  -- 直接加到 Tab 的內容容器
+
+local ServerCorner = Instance.new("UICorner")
+ServerCorner.CornerRadius = UDim.new(0, 12)
+ServerCorner.Parent = ServerFrame
+
+local ServerLabel = Instance.new("TextLabel")
+ServerLabel.Size = UDim2.new(1, 0, 1, 0)
+ServerLabel.BackgroundTransparency = 1
+ServerLabel.Text = "正在載入伺服器資訊..."
+ServerLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+ServerLabel.Font = Enum.Font.GothamBold
+ServerLabel.TextSize = 16
+ServerLabel.TextWrapped = true
+ServerLabel.TextXAlignment = Enum.TextXAlignment.Center
+ServerLabel.TextYAlignment = Enum.TextYAlignment.Center
+ServerLabel.Parent = ServerFrame
+
+spawn(function()
+    wait(0.5)  -- 延後一點時間，等 UI 渲染完成
+    while true do
+        local currentPlayers = #Players:GetPlayers()
+        local maxPlayers = Players.MaxPlayers
+        local serverName = game.JobId ~= "" and game.JobId or "本地伺服器"
+        local placeId = game.PlaceId
+        
+        ServerLabel.Text = string.format(
+            "伺服器名稱: %s\nPlace ID: %d\n人數: %d / %d",
+            serverName, placeId, currentPlayers, maxPlayers
+        )
+        wait(5)
     end
 end)
 
