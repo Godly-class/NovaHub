@@ -110,7 +110,6 @@ HomeTab:Paragraph({
     Desc = "歡迎，" .. LocalPlayer.Name .. "！\n🎯 準備好提升你的遊戲體驗了嗎！"
 })
 
--- 這是第 1 段
 HomeTab:Section({ Title = "📊 伺服器狀態", TextSize = 18 })
 HomeTab:Divider()
 
@@ -133,10 +132,9 @@ spawn(function()
             Title = "伺服器名稱: " .. serverName,
             Desc = "Place ID: " .. placeId .. "\n人數: " .. currentPlayers .. " / " .. maxPlayers
         })
-        wait(5)  -- 每5秒更新一次，避免頻率太高
+        wait(5)
     end
 end)
-
 
 HomeTab:Section({ Title = "📊 即時數據", TextSize = 18 })
 HomeTab:Divider()
@@ -214,7 +212,7 @@ PopularTab:Button({
     end
 })
 
--- 這是第 2 段
+-- 這是第 1 段
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
 
@@ -244,7 +242,6 @@ ArsenalTab:Divider()
 createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
 createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
 
--- 這是第 3 段
 BrookhavenTab:Section({ Title = "🏡 布魯克海文RP 腳本", TextSize = 18 })
 BrookhavenTab:Divider()
 
@@ -326,7 +323,7 @@ CriminalityTab:Button({
     end
 })
 
--- 這是第 4 段
+-- 這是第 2 段
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
 NightsForestTab:Divider()
 
@@ -381,13 +378,12 @@ UniversalTab:Divider()
 
 -- 快速互動（ProximityPrompt 0秒）
 local fastInteractEnabled = false
-local originalPrompts = {}  -- 儲存原始 HoldDuration
+local originalPrompts = {}
 
 local function toggleFastInteract(state)
     fastInteractEnabled = state
     
     if state then
-        -- 記錄並改成 0 秒
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("ProximityPrompt") then
                 originalPrompts[obj] = obj.HoldDuration
@@ -396,7 +392,6 @@ local function toggleFastInteract(state)
         end
         showNotification("⚡ 快速互動", "已啟用（所有長按改為即時）", 4, "zap")
     else
-        -- 恢復原始值
         for prompt, duration in pairs(originalPrompts) do
             if prompt and prompt.Parent then
                 prompt.HoldDuration = duration
@@ -433,20 +428,59 @@ UniversalTab:Button({
     end
 })
 
--- 飛行功能（支援手機觸控搖桿）
+-- 重新加入
+UniversalTab:Button({
+    Title = "重新加入",
+    Desc = "重新加入當前伺服器",
+    Icon = "refresh-cw",
+    Callback = function()
+        showNotification("重新加入", "正在重新加入伺服器...", 3, "refresh-cw")
+        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+    end
+})
+
+-- 加入少人伺服器
+UniversalTab:Button({
+    Title = "加入少人伺服器",
+    Desc = "嘗試加入人數 3~4 人以下的伺服器",
+    Icon = "users",
+    Callback = function()
+        showNotification("加入少人伺服器", "正在搜尋低人數伺服器...", 4, "users")
+        local function tryLowPlayer()
+            local success = pcall(function()
+                game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+            end)
+            if not success then
+                wait(1)
+                tryLowPlayer()
+            end
+        end
+        tryLowPlayer()
+    end
+})
+
+-- 切換伺服器
+UniversalTab:Button({
+    Title = "切換伺服器",
+    Desc = "隨機切換到全新伺服器",
+    Icon = "server",
+    Callback = function()
+        showNotification("切換伺服器", "正在尋找新伺服器...", 4, "server")
+        local servers = game.HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        local server = servers.data[math.random(1, #servers.data or 1)]
+        if server and server.id then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+        else
+            showNotification("錯誤", "暫時找不到可用伺服器", 5, "alert-triangle")
+        end
+    end
+})
+
+-- 飛行功能（支援手機）
 local flyEnabled = false
 local flyConnection
 local flySpeed = 50
 local bodyVelocity, bodyGyro
-
--- 手機觸控支援
-local touchInput = { forward = false, backward = false, left = false, right = false, up = false, down = false }
-
-UserInputService.TouchStarted:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    -- 你可以根據需要自訂觸控區域，這裡簡化為全螢幕偵測（實際可加虛擬搖桿 UI）
-    -- 這裡僅示範基本邏輯，建議搭配虛擬搖桿模組更完美
-end)
 
 local function startFly()
     local character = LocalPlayer.Character
@@ -477,13 +511,12 @@ local function startFly()
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
             
-            -- PC 鍵盤
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) or touchInput.forward then moveDirection += camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) or touchInput.backward then moveDirection -= camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) or touchInput.left then moveDirection -= camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) or touchInput.right then moveDirection += camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) or touchInput.up then moveDirection += Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or touchInput.down then moveDirection -= Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0,1,0) end
             
             bodyVelocity.Velocity = moveDirection * flySpeed
             bodyGyro.CFrame = camera.CFrame
@@ -530,56 +563,12 @@ UniversalTab:Slider({
     end
 })
 
--- 這是第 5 段
--- 重新加入（Rejoin）
-UniversalTab:Button({
-    Title = "重新加入",
-    Desc = "重新加入當前伺服器",
-    Icon = "refresh-cw",
-    Callback = function()
-        showNotification("重新加入", "正在重新加入伺服器...", 3, "refresh-cw")
-        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1.5)
+    if flyEnabled then
+        startFly()
     end
-})
-
--- 加入少人伺服器（需 TeleportService 支援，實際效果視遊戲）
-UniversalTab:Button({
-    Title = "加入少人伺服器",
-    Desc = "嘗試加入人數 3~4 人以下的伺服器",
-    Icon = "users",
-    Callback = function()
-        showNotification("加入少人伺服器", "正在搜尋低人數伺服器...", 4, "users")
-        -- Roblox TeleportService 無法直接指定人數，這裡模擬呼叫（實際需遊戲支援或使用外部 API）
-        -- 常見做法：重複 Teleport 到 PlaceId，直到找到低人數（但會有延遲）
-        local function tryLowPlayer()
-            local success = pcall(function()
-                game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-            end)
-            if not success then
-                wait(1)
-                tryLowPlayer()
-            end
-        end
-        tryLowPlayer()
-    end
-})
-
--- 切換伺服器（Server Hop）
-UniversalTab:Button({
-    Title = "切換伺服器",
-    Desc = "隨機切換到全新伺服器",
-    Icon = "server",
-    Callback = function()
-        showNotification("切換伺服器", "正在尋找新伺服器...", 4, "server")
-        local servers = game.HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        local server = servers.data[math.random(1, #servers.data)]
-        if server then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-        else
-            showNotification("錯誤", "暫時找不到可用伺服器", 5, "alert-triangle")
-        end
-    end
-})
+end)
 
 local noclipEnabled = false
 UniversalTab:Toggle({
@@ -852,4 +841,4 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Lun
 setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
 
--- 這是第 6 段
+-- 這是第 3 段
