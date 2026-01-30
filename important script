@@ -81,13 +81,10 @@ local PopularTab = Window:Tab({Icon = "trending-up", Title = "⭐ 熱門遊戲"}
 local MM2Tab = Window:Tab({Icon = "swords", Title = "🗡️ 殺手疑雲2"})
 local BedwarsTab = Window:Tab({Icon = "bed", Title = "🛏️ 床戰"})
 local RivalsTab = Window:Tab({Icon = "trophy", Title = "⚔️ 對手"})
-local HyperShotTab = Window:Tab({Icon = "target", Title = "💉 極速射擊"})
 local DoorsTab = Window:Tab({Icon = "door-closed", Title = "🚪 門"})
 local ArsenalTab = Window:Tab({Icon = "crosshair", Title = "🎯 軍火庫"})
 local BrookhavenTab = Window:Tab({Icon = "city", Title = "🏡 布魯克海文RP"})
-local MvsSTab = Window:Tab({Icon = "gun", Title = "🔫 兇手VS警長"})
 local DeadRailsTab = Window:Tab({Icon = "train", Title = "🚂 死亡鐵路"})
-local AnimeEternalTab = Window:Tab({Icon = "dragon", Title = "🐚 永恆動漫"})
 local ForsakenTab = Window:Tab({Icon = "skull", Title = "🔪 被遺棄"})
 local InkGameTab = Window:Tab({Icon = "pen-tool", Title = "🖊️ 墨水遊戲"})
 local StrongestBattlegroundsTab = Window:Tab({Icon = "fist", Title = "✋ 最強戰場"})
@@ -97,6 +94,7 @@ local ToolsTab = Window:Tab({Icon = "tool", Title = "⚙️ 工具"})
 local ESPTab = Window:Tab({Icon = "eye", Title = "👀 ESP"})
 local PrisonLifeTab = Window:Tab({Icon = "lock", Title = "🔒 監獄人生"})
 local DesyncTab = Window:Tab({Icon = "shield-off", Title = "🌀 Desync"})
+local CriminalityTab = Window:Tab({Icon = "skull-crossed", Title = "💀 Criminality"})
 local SettingsTab = Window:Tab({Icon = "settings", Title = "⚡ 設定"})
 
 HomeTab:Section({ Title = "🎉 歡迎來到 Nova中心", TextSize = 22 })
@@ -203,9 +201,6 @@ RivalsTab:Divider()
 
 createScriptButton(RivalsTab, "RIVALS Rise", "進階對手腳本，自動功能齊全", "https://raw.githubusercontent.com/ShadowBey01/SHWX-Team-Rise-Scripts/refs/heads/main/Games/Rise%20(Rivals).lua", "對手", "🚀")
 
-HyperShotTab:Section({ Title = "💉 極速射擊 腳本", TextSize = 18 })
-HyperShotTab:Divider()
-
 DoorsTab:Section({ Title = "🚪 門 腳本", TextSize = 18 })
 DoorsTab:Divider()
 
@@ -230,9 +225,6 @@ BrookhavenTab:Button({
     end
 })
 
-MvsSTab:Section({ Title = "🔫 兇手VS警長 腳本", TextSize = 18 })
-MvsSTab:Divider()
-
 DeadRailsTab:Section({ Title = "🚂 死亡鐵路 腳本", TextSize = 18 })
 DeadRailsTab:Divider()
 
@@ -246,18 +238,60 @@ DeadRailsTab:Button({
     end
 })
 
-AnimeEternalTab:Section({ Title = "🐚 永恆動漫 腳本", TextSize = 18 })
-AnimeEternalTab:Divider()
-
 ForsakenTab:Section({ Title = "🔪 被遺棄 腳本", TextSize = 18 })
 ForsakenTab:Divider()
+
+ForsakenTab:Button({
+    Title = "Nol",
+    Desc = "keyless",
+    Icon = "shield-off",
+    Callback = function()
+        setclipboard("NOL_KEY")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/SyndromeXph/Nolsaken/refs/heads/main/Loader.luau"))()
+        showNotification("🔪 Nol", "已複製 NOL_KEY 並載入 Nol 腳本！", 5, "shield-off")
+    end
+})
 
 InkGameTab:Section({ Title = "🖊️ 墨水遊戲 腳本", TextSize = 18 })
 InkGameTab:Divider()
 
+InkGameTab:Button({
+    Title = "AX",
+    Desc = "Need Key",
+    Icon = "key",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hdjsjjdgrhj/script-hub/refs/heads/main/AX%20CN"))()
+        showNotification("🖊️ AX", "已載入 AX 腳本！", 4, "key")
+    end
+})
+
+InkGameTab:Button({
+    Title = "Ringta",
+    Desc = "keyless（舊版）",
+    Icon = "circle",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hdjsjjdgrhj/script-hub/refs/heads/main/Ringta"))()
+        showNotification("🖊️ Ringta", "已載入 Ringta 舊版腳本！", 4, "circle")
+    end
+})
+
 StrongestBattlegroundsTab:Section({ Title = "✋ 最強戰場 腳本", TextSize = 18 })
 StrongestBattlegroundsTab:Divider()
 
+createScriptButton(StrongestBattlegroundsTab, "VexonHub", "最強腳本", "https://raw.githubusercontent.com/Tax-Script/TaxHub/refs/heads/main/VexonHub%20汉化", "最強戰場", "⚡")
+
+CriminalityTab:Section({ Title = "💀 Criminality 腳本", TextSize = 18 })
+CriminalityTab:Divider()
+
+CriminalityTab:Button({
+    Title = "kenny漢化",
+    Desc = "容易被踢",
+    Icon = "skull",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Kenny1.5.txt"))()
+        showNotification("💀 kenny漢化", "已載入 kenny漢化腳本（注意容易被踢）", 5, "skull")
+    end
+})
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
 NightsForestTab:Divider()
 
@@ -283,6 +317,7 @@ PrisonLifeTab:Button({
         showNotification("🔒 腳本一", "監獄人生腳本已載入！", 4, "lock")
     end
 })
+
 DesyncTab:Section({ Title = "🌀 Desync 腳本", TextSize = 18 })
 DesyncTab:Divider()
 
@@ -401,7 +436,7 @@ LocalPlayer.CharacterAdded:Connect(function()
         startFly()
     end
 end)
-
+--第六段
 local noclipEnabled = false
 ToolsTab:Toggle({
     Title = "👻 穿牆模式",
@@ -464,6 +499,7 @@ UserInputService.JumpRequest:Connect(function()
         if humanoid then humanoid:ChangeState("Jumping") end
     end
 end)
+
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 ESPTab:Divider()
 
@@ -580,7 +616,6 @@ ESPTab:Toggle({
         updateESP()
     end
 })
-
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -715,7 +750,6 @@ SettingsTab:Button({
         showNotification("🔄 已重置", "所有設定已恢復預設值！", 3, "refresh-cw")
     end
 })
-
 Window:SelectTab(1)
 Window:UnlockAll()
 
