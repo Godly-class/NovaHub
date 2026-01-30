@@ -65,28 +65,6 @@ local function loadScript(scriptName, scriptUrl, description, gameName)
     end
 end
 
-local function addUniversalScripts(tab, gameName)
-    tab:Button({
-        Title = "🎮 Aham Hub 腳本",
-        Desc = gameName .. "通用腳本 - 支援25+遊戲",
-        Icon = "cpu",
-        Callback = function()
-            loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-AHAM-HUB-52379"))()
-            showNotification("🎮 Aham Hub", gameName .. " 已載入 Aham Hub！", 4, "cpu")
-        end
-    })
-    
-    tab:Button({
-        Title = "⚡ YARHM 腳本",
-        Desc = gameName .. "通用腳本 - 全遊戲支援",
-        Icon = "zap",
-        Callback = function()
-            loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-YARHM-12403"))()
-            showNotification("⚡ YARHM", gameName .. " 已載入 YARHM！", 4, "zap")
-        end
-    })
-end
-
 local function createScriptButton(tab, name, description, url, gameName, emoji)
     tab:Button({
         Title = emoji .. " " .. name,
@@ -768,5 +746,5 @@ end)
 wait(1)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Luna-Interface/refs/heads/main/source.lua"))()
 
-setclipboard("https://discord.gg/pNfrgHeede")
+setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
