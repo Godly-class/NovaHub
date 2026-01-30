@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/UI-Libraries/main/WindUI/Source.lua"))()
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/UI-Libraries/refs/heads/main/Vynixius%20UI%20Library/Source.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
