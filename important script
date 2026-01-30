@@ -122,12 +122,11 @@ local StatsLabel = HomeTab:Paragraph({
 spawn(function()
     while true do
         local fps = math.round(1 / RunService.RenderStepped:Wait())
-        local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
-        local memory = math.round(game:GetService("Stats"):GetMemoryUsageMbForTag(Enum.DeveloperMemoryType.Script))
+        local ping = math.round(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
         
         StatsLabel:Set({
-            Title = string.format("⚡ %d FPS | 📡 %d ms | 💾 %d MB", fps, ping, memory),
-            Desc = "🎮 Nova中心 - 流暢運行"
+            Title = string.format("⚡ %d FPS   |   📡 %d ms Ping", fps, ping),
+            Desc = "Nova中心 - 流暢運行中"
         })
         wait(2)
     end
@@ -141,7 +140,7 @@ HomeTab:Button({
     Desc = "加入社群獲取最新更新與支援！",
     Icon = "users",
     Callback = function()
-        setclipboard("https://discord.gg/pNfrgHeede")
+        setclipboard("https://discord.gg/4WSmx666DP")
         showNotification("📱 Discord", "邀請連結已複製到剪貼簿！", 4, "users")
     end
 })
@@ -168,15 +167,30 @@ createScriptButton(PopularTab, "TX腳本中心", "國內最強", "https://github
 createScriptButton(PopularTab, "BS黑洞中心", "強力通用腳本", "https://gitee.com/BS_script/script/raw/master/BS_Script.Luau", "全遊戲", "🕳️")
 createScriptButton(PopularTab, "kral", "Xi團隊破解", "https://raw.githubusercontent.com/2721284198-dev/kj/refs/heads/main/kanl", "全遊戲", "⚡")
 
-addUniversalScripts(PopularTab, "全遊戲")
+PopularTab:Button({
+    Title = "🎮 Aham Hub 腳本",
+    Desc = "全遊戲通用腳本 - 支援25+遊戲",
+    Icon = "cpu",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-AHAM-HUB-52379"))()
+        showNotification("🎮 Aham Hub", "已載入 Aham Hub！", 4, "cpu")
+    end
+})
 
+PopularTab:Button({
+    Title = "⚡ YARHM 腳本",
+    Desc = "全遊戲通用腳本 - 全遊戲支援",
+    Icon = "zap",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-YARHM-12403"))()
+        showNotification("⚡ YARHM", "已載入 YARHM！", 4, "zap")
+    end
+})
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
 
 createScriptButton(MM2Tab, "MM2 TravHub", "完整功能 - 無需密鑰", "https://raw.githubusercontent.com/mm2scripthub/TravHub/refs/heads/main/MurderMystery2", "殺手疑雲2", "🌙")
 createScriptButton(MM2Tab, "MM2 自動農場", "管理指令與工具 - 無需密鑰", "https://raw.githubusercontent.com/renardofficiel/game/refs/heads/main/MurderMystery2/main.lua", "殺手疑雲2", "🛡️")
-
-addUniversalScripts(MM2Tab, "殺手疑雲2")
 
 BedwarsTab:Section({ Title = "🛏️ 床戰 腳本", TextSize = 18 })
 BedwarsTab:Divider()
@@ -184,18 +198,13 @@ BedwarsTab:Divider()
 createScriptButton(BedwarsTab, "BedWars Rust Hub", "完整床戰功能 - 無需密鑰", "https://raw.githubusercontent.com/0xEIite/rust/main/NewMainScript.lua", "床戰", "🦀")
 createScriptButton(BedwarsTab, "BedWars Vape V4", "高級床戰腳本，功能強大", "https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/NewMainScript.lua", "床戰", "💨")
 
-addUniversalScripts(BedwarsTab, "床戰")
 RivalsTab:Section({ Title = "⚔️ 對手 腳本", TextSize = 18 })
 RivalsTab:Divider()
 
 createScriptButton(RivalsTab, "RIVALS Rise", "進階對手腳本，自動功能齊全", "https://raw.githubusercontent.com/ShadowBey01/SHWX-Team-Rise-Scripts/refs/heads/main/Games/Rise%20(Rivals).lua", "對手", "🚀")
 
-addUniversalScripts(RivalsTab, "對手")
-
 HyperShotTab:Section({ Title = "💉 極速射擊 腳本", TextSize = 18 })
 HyperShotTab:Divider()
-
-addUniversalScripts(HyperShotTab, "極速射擊")
 
 DoorsTab:Section({ Title = "🚪 門 腳本", TextSize = 18 })
 DoorsTab:Divider()
@@ -203,16 +212,11 @@ DoorsTab:Divider()
 createScriptButton(DoorsTab, "DOORS Saturn Hub", "完整門腳本，實體規避", "https://raw.githubusercontent.com/JScripter-Lua/Saturn_Hub_Products/refs/heads/main/Saturn_Hub_Doors.lua", "門", "🪐")
 createScriptButton(DoorsTab, "DOORS Velocity X", "速度與生存功能", "https://raw.githubusercontent.com/DasVelocity/VelocityX/refs/heads/main/VelocityX.lua", "門", "💨")
 
-addUniversalScripts(DoorsTab, "門")
-
 ArsenalTab:Section({ Title = "🎯 軍火庫 腳本", TextSize = 18 })
 ArsenalTab:Divider()
 
 createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
 createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
-
-addUniversalScripts(ArsenalTab, "軍火庫")
-
 BrookhavenTab:Section({ Title = "🏡 布魯克海文RP 腳本", TextSize = 18 })
 BrookhavenTab:Divider()
 
@@ -226,12 +230,8 @@ BrookhavenTab:Button({
     end
 })
 
-addUniversalScripts(BrookhavenTab, "布魯克海文RP")
-
 MvsSTab:Section({ Title = "🔫 兇手VS警長 腳本", TextSize = 18 })
 MvsSTab:Divider()
-
-addUniversalScripts(MvsSTab, "兇手VS警長")
 
 DeadRailsTab:Section({ Title = "🚂 死亡鐵路 腳本", TextSize = 18 })
 DeadRailsTab:Divider()
@@ -246,27 +246,17 @@ DeadRailsTab:Button({
     end
 })
 
-addUniversalScripts(DeadRailsTab, "死亡鐵路")
-
 AnimeEternalTab:Section({ Title = "🐚 永恆動漫 腳本", TextSize = 18 })
 AnimeEternalTab:Divider()
-
-addUniversalScripts(AnimeEternalTab, "永恆動漫")
 
 ForsakenTab:Section({ Title = "🔪 被遺棄 腳本", TextSize = 18 })
 ForsakenTab:Divider()
 
-addUniversalScripts(ForsakenTab, "被遺棄")
-
 InkGameTab:Section({ Title = "🖊️ 墨水遊戲 腳本", TextSize = 18 })
 InkGameTab:Divider()
 
-addUniversalScripts(InkGameTab, "墨水遊戲")
-
 StrongestBattlegroundsTab:Section({ Title = "✋ 最強戰場 腳本", TextSize = 18 })
 StrongestBattlegroundsTab:Divider()
-
-addUniversalScripts(StrongestBattlegroundsTab, "最強戰場")
 
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
 NightsForestTab:Divider()
@@ -281,8 +271,6 @@ NightsForestTab:Button({
     end
 })
 
-addUniversalScripts(NightsForestTab, "森林99夜")
-
 PrisonLifeTab:Section({ Title = "🔒 監獄人生 腳本", TextSize = 18 })
 PrisonLifeTab:Divider()
 
@@ -295,8 +283,6 @@ PrisonLifeTab:Button({
         showNotification("🔒 腳本一", "監獄人生腳本已載入！", 4, "lock")
     end
 })
-
-addUniversalScripts(PrisonLifeTab, "監獄人生")
 DesyncTab:Section({ Title = "🌀 Desync 腳本", TextSize = 18 })
 DesyncTab:Divider()
 
@@ -415,6 +401,69 @@ LocalPlayer.CharacterAdded:Connect(function()
         startFly()
     end
 end)
+
+local noclipEnabled = false
+ToolsTab:Toggle({
+    Title = "👻 穿牆模式",
+    Desc = "可穿過牆壁與物體行走",
+    Value = false,
+    Callback = function(state)
+        noclipEnabled = state
+        showNotification("👻 穿牆", state and "穿牆模式已啟動！" or "穿牆模式已關閉", 3, "ghost")
+    end
+})
+
+local walkSpeedValue = 16
+ToolsTab:Slider({
+    Title = "💨 行走速度",
+    Desc = "調整角色移動速度",
+    Value = { Min = 16, Max = 200, Default = 16 },
+    Callback = function(value)
+        walkSpeedValue = value
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.WalkSpeed = value end
+    end
+})
+
+local jumpPowerValue = 50
+ToolsTab:Slider({
+    Title = "🦘 跳躍高度",
+    Desc = "調整角色跳躍高度",
+    Value = { Min = 50, Max = 500, Default = 50 },
+    Callback = function(value)
+        jumpPowerValue = value
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.JumpPower = value end
+    end
+})
+
+local infiniteJumpEnabled = false
+ToolsTab:Toggle({
+    Title = "∞ 無限跳躍",
+    Desc = "按住空白鍵可無限跳躍",
+    Value = false,
+    Callback = function(state)
+        infiniteJumpEnabled = state
+        showNotification("∞ 跳躍", state and "無限跳躍已啟動！" or "無限跳躍已關閉", 3, "activity")
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    if noclipEnabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if infiniteJumpEnabled and LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid:ChangeState("Jumping") end
+    end
+end)
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 ESPTab:Divider()
 
@@ -452,9 +501,6 @@ local function updateESP()
             highlight.OutlineTransparency = 0
             highlight.Parent = char
         end
-        
-        -- 其他 ESP 元件（血條、名稱、距離、骨骼、2D框）可自行擴充
-        -- 這裡僅示範 Highlight 與基本狀態
     end
     
     for _, player in pairs(Players:GetPlayers()) do
@@ -535,68 +581,6 @@ ESPTab:Toggle({
     end
 })
 
-local noclipEnabled = false
-ToolsTab:Toggle({
-    Title = "👻 穿牆模式",
-    Desc = "可穿過牆壁與物體行走",
-    Value = false,
-    Callback = function(state)
-        noclipEnabled = state
-        showNotification("👻 穿牆", state and "穿牆模式已啟動！" or "穿牆模式已關閉", 3, "ghost")
-    end
-})
-
-local walkSpeedValue = 16
-ToolsTab:Slider({
-    Title = "💨 行走速度",
-    Desc = "調整角色移動速度",
-    Value = { Min = 16, Max = 200, Default = 16 },
-    Callback = function(value)
-        walkSpeedValue = value
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = value end
-    end
-})
-
-local jumpPowerValue = 50
-ToolsTab:Slider({
-    Title = "🦘 跳躍高度",
-    Desc = "調整角色跳躍高度",
-    Value = { Min = 50, Max = 500, Default = 50 },
-    Callback = function(value)
-        jumpPowerValue = value
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.JumpPower = value end
-    end
-})
-
-local infiniteJumpEnabled = false
-ToolsTab:Toggle({
-    Title = "∞ 無限跳躍",
-    Desc = "按住空白鍵可無限跳躍",
-    Value = false,
-    Callback = function(state)
-        infiniteJumpEnabled = state
-        showNotification("∞ 跳躍", state and "無限跳躍已啟動！" or "無限跳躍已關閉", 3, "activity")
-    end
-})
-
-RunService.RenderStepped:Connect(function()
-    if noclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if infiniteJumpEnabled and LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid:ChangeState("Jumping") end
-    end
-end)
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
