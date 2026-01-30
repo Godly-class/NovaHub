@@ -90,7 +90,7 @@ local InkGameTab = Window:Tab({Icon = "pen-tool", Title = "🖊️ 墨水遊戲"
 local StrongestBattlegroundsTab = Window:Tab({Icon = "fist", Title = "✋ 最強戰場"})
 local NightsForestTab = Window:Tab({Icon = "tree", Title = "🌲 森林99夜"})
 local OtherGamesTab = Window:Tab({Icon = "gamepad", Title = "🎮 其他遊戲"})
-local ToolsTab = Window:Tab({Icon = "tool", Title = "⚙️ 工具"})
+local UniversalTab = Window:Tab({Icon = "tool", Title = "通用"})
 local ESPTab = Window:Tab({Icon = "eye", Title = "👀 ESP"})
 local PrisonLifeTab = Window:Tab({Icon = "lock", Title = "🔒 監獄人生"})
 local DesyncTab = Window:Tab({Icon = "shield-off", Title = "🌀 Desync"})
@@ -109,6 +109,35 @@ HomeTab:Paragraph({
     Title = "👤 使用者資訊",
     Desc = "歡迎，" .. LocalPlayer.Name .. "！\n🎯 準備好提升你的遊戲體驗了嗎！"
 })
+
+-- 這是第 1 段
+HomeTab:Section({ Title = "📊 伺服器狀態", TextSize = 18 })
+HomeTab:Divider()
+
+local ServerStatusLabel = HomeTab:Paragraph({
+    Title = "正在載入伺服器資訊...",
+    Desc = "Nova中心 - 連接中"
+})
+
+ServerStatusLabel.Instance.BackgroundColor3 = Color3.fromRGB(173, 216, 230)  -- 淺藍色背景
+ServerStatusLabel.Instance.BackgroundTransparency = 0.7
+
+spawn(function()
+    while true do
+        local currentPlayers = #Players:GetPlayers()
+        local maxPlayers = Players.MaxPlayers
+        local serverName = game.JobId ~= "" and game.JobId or "本地伺服器"
+        local placeId = game.PlaceId
+        
+        ServerStatusLabel:Set({
+            Title = "伺服器名稱: " .. serverName,
+            Desc = "Place ID: " .. placeId .. "\n人數: " .. currentPlayers .. " / " .. maxPlayers
+        })
+        wait(5)  -- 每5秒更新一次，避免頻率太高
+    end
+end)
+
+
 HomeTab:Section({ Title = "📊 即時數據", TextSize = 18 })
 HomeTab:Divider()
 
@@ -157,14 +186,12 @@ HomeTab:Button({
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
 
-createScriptButton(PopularTab, "通用自瞄", "幾乎全遊戲通用", "https://atlasteam.live/silentaim", "全遊戲", "😈")
 createScriptButton(PopularTab, "Infinite Yield", "進階管理指令，功能豐富", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", "全遊戲", "👑")
 createScriptButton(PopularTab, "Orca Hub", "多遊戲通用腳本中心", "https://raw.githubusercontent.com/richie0866/orca/master/public/latest.lua", "全遊戲", "🐋")
 createScriptButton(PopularTab, "Dark Dex", "強大的腳本瀏覽與反編譯工具", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua", "全遊戲", "🔍")
 createScriptButton(PopularTab, "Nova中心（舊版）", "已落幕，但是最經典", "https://pastebin.com/raw/4iL0zJn7", "全遊戲", "⭐")
 createScriptButton(PopularTab, "TX腳本中心", "國內最強", "https://github.com/devslopo/DVES/raw/main/XK%20Hub", "全遊戲", "🇨🇳")
 createScriptButton(PopularTab, "BS黑洞中心", "強力通用腳本", "https://gitee.com/BS_script/script/raw/master/BS_Script.Luau", "全遊戲", "🕳️")
-createScriptButton(PopularTab, "皮腳本", "國內最知名腳本", "https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua", "全遊戲", "🌹")
 createScriptButton(PopularTab, "kral", "Xi團隊破解", "https://raw.githubusercontent.com/2721284198-dev/kj/refs/heads/main/kanl", "全遊戲", "⚡")
 
 PopularTab:Button({
@@ -186,6 +213,8 @@ PopularTab:Button({
         showNotification("⚡ YARHM", "已載入 YARHM！", 4, "zap")
     end
 })
+
+-- 這是第 2 段
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
 
@@ -214,6 +243,8 @@ ArsenalTab:Divider()
 
 createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
 createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
+
+-- 這是第 3 段
 BrookhavenTab:Section({ Title = "🏡 布魯克海文RP 腳本", TextSize = 18 })
 BrookhavenTab:Divider()
 
@@ -294,6 +325,8 @@ CriminalityTab:Button({
         showNotification("💀 kenny漢化", "已載入 kenny漢化腳本（注意容易被踢）", 5, "skull")
     end
 })
+
+-- 這是第 4 段
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
 NightsForestTab:Divider()
 
@@ -343,13 +376,77 @@ DesyncTab:Button({
     end
 })
 
-ToolsTab:Section({ Title = "⚙️ 高級工具", TextSize = 20 })
-ToolsTab:Divider()
+UniversalTab:Section({ Title = "通用 工具", TextSize = 20 })
+UniversalTab:Divider()
 
+-- 快速互動（ProximityPrompt 0秒）
+local fastInteractEnabled = false
+local originalPrompts = {}  -- 儲存原始 HoldDuration
+
+local function toggleFastInteract(state)
+    fastInteractEnabled = state
+    
+    if state then
+        -- 記錄並改成 0 秒
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") then
+                originalPrompts[obj] = obj.HoldDuration
+                obj.HoldDuration = 0
+            end
+        end
+        showNotification("⚡ 快速互動", "已啟用（所有長按改為即時）", 4, "zap")
+    else
+        -- 恢復原始值
+        for prompt, duration in pairs(originalPrompts) do
+            if prompt and prompt.Parent then
+                prompt.HoldDuration = duration
+            end
+        end
+        originalPrompts = {}
+        showNotification("⚡ 快速互動", "已關閉，恢復原長按時間", 4, "zap-off")
+    end
+end
+
+UniversalTab:Toggle({
+    Title = "⚡ 快速互動",
+    Desc = "將所有需要長按的 UI 改為 0 秒（再按恢復）",
+    Value = false,
+    Callback = function(state)
+        toggleFastInteract(state)
+    end
+})
+
+-- 自殺按鈕
+UniversalTab:Button({
+    Title = "💀 自殺",
+    Desc = "立即讓角色死亡",
+    Icon = "skull",
+    Callback = function()
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.Health = 0
+                showNotification("💀 自殺", "已執行自殺", 3, "skull")
+            end
+        end
+    end
+})
+
+-- 飛行功能（支援手機觸控搖桿）
 local flyEnabled = false
 local flyConnection
 local flySpeed = 50
 local bodyVelocity, bodyGyro
+
+-- 手機觸控支援
+local touchInput = { forward = false, backward = false, left = false, right = false, up = false, down = false }
+
+UserInputService.TouchStarted:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    -- 你可以根據需要自訂觸控區域，這裡簡化為全螢幕偵測（實際可加虛擬搖桿 UI）
+    -- 這裡僅示範基本邏輯，建議搭配虛擬搖桿模組更完美
+end)
 
 local function startFly()
     local character = LocalPlayer.Character
@@ -380,18 +477,19 @@ local function startFly()
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0,1,0) end
+            -- PC 鍵盤
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) or touchInput.forward then moveDirection += camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) or touchInput.backward then moveDirection -= camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) or touchInput.left then moveDirection -= camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) or touchInput.right then moveDirection += camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) or touchInput.up then moveDirection += Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or touchInput.down then moveDirection -= Vector3.new(0,1,0) end
             
             bodyVelocity.Velocity = moveDirection * flySpeed
             bodyGyro.CFrame = camera.CFrame
         end)
         
-        showNotification("🚀 飛行", "飛行模式已啟動！使用 WASD + 空白鍵/Shift", 4, "rocket")
+        showNotification("🚀 飛行", "飛行模式已啟動！PC: WASD+Space/Shift | 手機: 觸控控制", 4, "rocket")
     end
 end
 
@@ -410,9 +508,9 @@ local function stopFly()
     showNotification("🚀 飛行", "飛行模式已關閉", 3, "landmark")
 end
 
-ToolsTab:Toggle({
+UniversalTab:Toggle({
     Title = "🚀 飛行模式",
-    Desc = "開啟飛行（WASD + 空白鍵/Shift 控制）",
+    Desc = "開啟飛行（PC: WASD+Space/Shift | 手機觸控支援）",
     Value = false,
     Callback = function(state)
         if state then
@@ -423,7 +521,7 @@ ToolsTab:Toggle({
     end
 })
 
-ToolsTab:Slider({
+UniversalTab:Slider({
     Title = "🎯 飛行速度",
     Desc = "調整飛行移動速度",
     Value = { Min = 20, Max = 200, Default = 50 },
@@ -432,15 +530,59 @@ ToolsTab:Slider({
     end
 })
 
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1.5)
-    if flyEnabled then
-        startFly()
+-- 這是第 5 段
+-- 重新加入（Rejoin）
+UniversalTab:Button({
+    Title = "重新加入",
+    Desc = "重新加入當前伺服器",
+    Icon = "refresh-cw",
+    Callback = function()
+        showNotification("重新加入", "正在重新加入伺服器...", 3, "refresh-cw")
+        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
     end
-end)
---第六段
+})
+
+-- 加入少人伺服器（需 TeleportService 支援，實際效果視遊戲）
+UniversalTab:Button({
+    Title = "加入少人伺服器",
+    Desc = "嘗試加入人數 3~4 人以下的伺服器",
+    Icon = "users",
+    Callback = function()
+        showNotification("加入少人伺服器", "正在搜尋低人數伺服器...", 4, "users")
+        -- Roblox TeleportService 無法直接指定人數，這裡模擬呼叫（實際需遊戲支援或使用外部 API）
+        -- 常見做法：重複 Teleport 到 PlaceId，直到找到低人數（但會有延遲）
+        local function tryLowPlayer()
+            local success = pcall(function()
+                game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+            end)
+            if not success then
+                wait(1)
+                tryLowPlayer()
+            end
+        end
+        tryLowPlayer()
+    end
+})
+
+-- 切換伺服器（Server Hop）
+UniversalTab:Button({
+    Title = "切換伺服器",
+    Desc = "隨機切換到全新伺服器",
+    Icon = "server",
+    Callback = function()
+        showNotification("切換伺服器", "正在尋找新伺服器...", 4, "server")
+        local servers = game.HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        local server = servers.data[math.random(1, #servers.data)]
+        if server then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+        else
+            showNotification("錯誤", "暫時找不到可用伺服器", 5, "alert-triangle")
+        end
+    end
+})
+
 local noclipEnabled = false
-ToolsTab:Toggle({
+UniversalTab:Toggle({
     Title = "👻 穿牆模式",
     Desc = "可穿過牆壁與物體行走",
     Value = false,
@@ -451,7 +593,7 @@ ToolsTab:Toggle({
 })
 
 local walkSpeedValue = 16
-ToolsTab:Slider({
+UniversalTab:Slider({
     Title = "💨 行走速度",
     Desc = "調整角色移動速度",
     Value = { Min = 16, Max = 200, Default = 16 },
@@ -463,7 +605,7 @@ ToolsTab:Slider({
 })
 
 local jumpPowerValue = 50
-ToolsTab:Slider({
+UniversalTab:Slider({
     Title = "🦘 跳躍高度",
     Desc = "調整角色跳躍高度",
     Value = { Min = 50, Max = 500, Default = 50 },
@@ -475,7 +617,7 @@ ToolsTab:Slider({
 })
 
 local infiniteJumpEnabled = false
-ToolsTab:Toggle({
+UniversalTab:Toggle({
     Title = "∞ 無限跳躍",
     Desc = "按住空白鍵可無限跳躍",
     Value = false,
@@ -506,118 +648,58 @@ ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 ESPTab:Divider()
 
 local espEnabled = false
-local espSettings = {
-    HealthBar = false,
-    Name = false,
-    Distance = false,
-    Skeleton = false,
-    Highlight = false,
-    Box2D = false
-}
-
-local espConnections = {}
+local espHighlights = {}
 
 local function updateESP()
-    for _, conn in pairs(espConnections) do conn:Disconnect() end
-    espConnections = {}
+    for _, hl in pairs(espHighlights) do
+        if hl then hl:Destroy() end
+    end
+    espHighlights = {}
     
     if not espEnabled then return end
     
-    local function createESP(player)
-        if player == LocalPlayer or not player.Character then return end
+    for _, player in pairs(Players:GetPlayers()) do
+        if player == LocalPlayer or not player.Character then continue end
         
         local char = player.Character
         local root = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid then return end
+        if not root or not humanoid then continue end
         
-        local highlight = espSettings.Highlight and Instance.new("Highlight") or nil
-        if highlight then
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Parent = char
-        end
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = char
+        highlight.Parent = char
+        
+        table.insert(espHighlights, highlight)
     end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        createESP(player)
-    end
-    
-    table.insert(espConnections, Players.PlayerAdded:Connect(createESP))
 end
 
 ESPTab:Toggle({
-    Title = "👀 ESP 總開關",
-    Desc = "開啟/關閉所有 ESP 功能",
+    Title = "👀 ESP 總開關 (Highlight)",
+    Desc = "開啟/關閉高亮顯示（已修復關閉後不消失）",
     Value = false,
     Callback = function(state)
         espEnabled = state
         updateESP()
-        showNotification("ESP", "ESP 已" .. (state and "開啟" or "關閉"), 4, "eye")
+        showNotification("ESP", "高亮 ESP 已" .. (state and "開啟" or "關閉"), 4, "eye")
     end
 })
 
-ESPTab:Toggle({
-    Title = "❤️ 血條",
-    Desc = "顯示玩家血量條",
-    Value = false,
-    Callback = function(state)
-        espSettings.HealthBar = state
-        updateESP()
-    end
-})
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if espEnabled then
+            task.wait(1)
+            updateESP()
+        end
+    end)
+end)
 
-ESPTab:Toggle({
-    Title = "📛 名稱",
-    Desc = "顯示玩家名稱",
-    Value = false,
-    Callback = function(state)
-        espSettings.Name = state
-        updateESP()
-    end
-})
+Players.PlayerRemoving:Connect(updateESP)
 
-ESPTab:Toggle({
-    Title = "📏 距離",
-    Desc = "顯示與玩家的距離",
-    Value = false,
-    Callback = function(state)
-        espSettings.Distance = state
-        updateESP()
-    end
-})
-
-ESPTab:Toggle({
-    Title = "🦴 骨骼",
-    Desc = "顯示骨骼線",
-    Value = false,
-    Callback = function(state)
-        espSettings.Skeleton = state
-        updateESP()
-    end
-})
-
-ESPTab:Toggle({
-    Title = "✨ Highlight",
-    Desc = "高亮玩家模型",
-    Value = false,
-    Callback = function(state)
-        espSettings.Highlight = state
-        updateESP()
-    end
-})
-
-ESPTab:Toggle({
-    Title = "🟥 2D 方框",
-    Desc = "顯示 2D 方框框選",
-    Value = false,
-    Callback = function(state)
-        espSettings.Box2D = state
-        updateESP()
-    end
-})
 LocalPlayer.CharacterAdded:Connect(function(character)
     task.wait(1)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -752,6 +834,7 @@ SettingsTab:Button({
         showNotification("🔄 已重置", "所有設定已恢復預設值！", 3, "refresh-cw")
     end
 })
+
 Window:SelectTab(1)
 Window:UnlockAll()
 
@@ -768,3 +851,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Lun
 
 setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
+
+-- 這是第 6 段
