@@ -25,11 +25,11 @@ local Window = WindUI:CreateWindow({
     Folder = "NovaCenter",
     Size = UDim2.fromOffset(650, 550),
     Theme = "Dark",
-    HidePanelBackground = false,
-    Acrylic = true,
+    HidePanelBackground = true,      -- 避免側邊欄隱藏問題
+    Acrylic = false,                 -- 先關閉 Acrylic 減少渲染 bug
     HideSearchBar = false,
-    SideBarWidth = 220,
-    BackgroundImage = "rbxassetid://9997192723",
+    SideBarWidth = 280,              -- 加大側邊欄寬度
+    -- BackgroundImage = "rbxassetid://9997192723",  -- 暫時註解，避免衝突
     BackgroundImageTransparency = 0.8,
 })
 
@@ -97,6 +97,7 @@ local DesyncTab = Window:Tab({Icon = "shield-off", Title = "🌀 Desync"})
 local CriminalityTab = Window:Tab({Icon = "skull-crossed", Title = "💀 Criminality"})
 local SettingsTab = Window:Tab({Icon = "settings", Title = "⚡ 設定"})
 
+-- 強制每個 Tab 加內容，避免空 Tab 隱藏
 HomeTab:Section({ Title = "🎉 歡迎來到 Nova中心", TextSize = 22 })
 HomeTab:Divider()
 
@@ -177,7 +178,7 @@ HomeTab:Button({
     Callback = function()
         showNotification("🔄 重新整理中", "Nova中心正在重新載入...", 3, "refresh-cw")
         wait(2)
-        Window:SelectTab(1)
+        Window:SelectTab(HomeTab)
     end
 })
 
@@ -411,7 +412,7 @@ UniversalTab:Toggle({
     end
 })
 
--- 自殺按鈕
+-- 自殺
 UniversalTab:Button({
     Title = "💀 自殺",
     Desc = "立即讓角色死亡",
@@ -824,7 +825,7 @@ SettingsTab:Button({
     end
 })
 
-Window:SelectTab(1)
+Window:SelectTab(HomeTab)  -- 直接選 HomeTab 物件，避免索引問題
 Window:UnlockAll()
 
 Window:OnClose(function()
