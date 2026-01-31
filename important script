@@ -2,8 +2,8 @@ local success, Vynixius = pcall(loadstring, game:HttpGet("https://raw.githubuser
 if not success or not Vynixius then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Vynixius UI 載入失敗",
-        Text = "錯誤: " .. tostring(Vynixius) .. "\n請檢查網路或 executor",
-        Duration = 10
+        Text = "錯誤: " .. tostring(Vynixius) .. "\n建議換來源：https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua",
+        Duration = 15
     })
     return
 end
@@ -23,17 +23,19 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
--- 修正視窗建立（第 27 行左右）：用 Vynixius 常見方法
+-- 第 27 行修復：防錯建立視窗
 local Window
 if Vynixius.CreateWindow then
     Window = Vynixius:CreateWindow("🔥 Nova中心", "DarkTheme")
 elseif Vynixius.Window then
     Window = Vynixius:Window("🔥 Nova中心", "DarkTheme")
+elseif Vynixius.CreateLib then
+    Window = Vynixius:CreateLib("🔥 Nova中心", "DarkTheme")
 else
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Vynixius UI 錯誤",
-        Text = "找不到 CreateWindow 或 Window 方法",
-        Duration = 10
+        Text = "找不到建立視窗的方法 (CreateWindow/Window/CreateLib 皆 nil)\n建議換來源：https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua",
+        Duration = 15
     })
     return
 end
