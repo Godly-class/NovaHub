@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/UI-Libraries/refs/heads/main/Vynixius%20UI%20Library/Source.lua"))()
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,32 +15,28 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
--- 建立主視窗（使用正確的 AddWindow 方法）
-local Window = WindUI:AddWindow({
-    title = {"🔥 Nova中心", "支援25+遊戲"},   -- 可以用 table 做兩行標題，更好看
-    toggled = true,                             -- 預設顯示
-    key = Enum.KeyCode.RightControl,            -- 快捷鍵開關（可改成 Insert / RightShift 等）
-    theme = {                                   -- 強制暗黑風格主題
-        ThemeColor = Color3.fromRGB(100, 150, 255),   -- 主色調（藍紫）
-        TopbarColor = Color3.fromRGB(20, 20, 25),
-        SidebarColor = Color3.fromRGB(15, 15, 20),
-        BackgroundColor = Color3.fromRGB(10, 10, 15),
-        SectionColor = Color3.fromRGB(20, 20, 25),
-        TextColor = Color3.fromRGB(220, 220, 230),
-    }
+WindUI:SetTheme("Dark")
+WindUI.TransparencyValue = 0.18
+
+local Window = WindUI:CreateWindow({
+    Title = "Nova中心",
+    Icon = "sparkles",
+    Author = "Godly-class",
+    Folder = "NovaHub",
+    Size = UDim2.fromOffset(620, 520),
+    Acrylic = true,
+    Theme = "Dark"
 })
 
--- 自訂通知函數（用 WindUI:Notify）
 local function showNotification(title, content, duration, icon)
     WindUI:Notify({
         Title = title,
         Content = content,
         Duration = duration or 4,
-        Icon = icon or "check-circle"   -- Vynixius 支援的 icon 名稱
+        Icon = icon or "check-circle"
     })
 end
 
--- 載入腳本的通用函數（保持原樣，但用新的通知）
 local function loadScript(scriptName, scriptUrl, description, gameName)
     showNotification("🔄 載入中...", scriptName .. " 正在載入...", 2)
     
@@ -64,7 +60,6 @@ local function loadScript(scriptName, scriptUrl, description, gameName)
     end
 end
 
--- 建立按鈕的通用函數（注意：這裡用 Tab:Button 而非 Tab:CreateButton）
 local function createScriptButton(tab, name, description, url, gameName, emoji)
     tab:Button({
         Title = emoji .. " " .. name,
@@ -76,31 +71,29 @@ local function createScriptButton(tab, name, description, url, gameName, emoji)
     })
 end
 
--- 從這裡開始就是你原本的 Tab 建立部分，可以直接接下去
--- local HomeTab = Window:Tab({Icon = "home", Title = "🏠 首頁"})
--- ... 其他 Tab、Section、Button 保持原樣
+-- 建立所有 Tab
+local HomeTab = Window:Tab({Title = "🏠 首頁", Icon = "home"})
+local PopularTab = Window:Tab({Title = "⭐ 熱門遊戲", Icon = "trending-up"})
+local MM2Tab = Window:Tab({Title = "🗡️ 殺手疑雲2", Icon = "swords"})
+local BedwarsTab = Window:Tab({Title = "🛏️ 床戰", Icon = "bed"})
+local RivalsTab = Window:Tab({Title = "⚔️ 對手", Icon = "trophy"})
+local DoorsTab = Window:Tab({Title = "🚪 門", Icon = "door-closed"})
+local ArsenalTab = Window:Tab({Title = "🎯 軍火庫", Icon = "crosshair"})
+local BrookhavenTab = Window:Tab({Title = "🏡 布魯克海文RP", Icon = "city"})
+local DeadRailsTab = Window:Tab({Title = "🚂 死亡鐵路", Icon = "train"})
+local ForsakenTab = Window:Tab({Title = "🔪 被遺棄", Icon = "skull"})
+local InkGameTab = Window:Tab({Title = "🖊️ 墨水遊戲", Icon = "pen-tool"})
+local StrongestBattlegroundsTab = Window:Tab({Title = "✋ 最強戰場", Icon = "fist"})
+local NightsForestTab = Window:Tab({Title = "🌲 森林99夜", Icon = "tree"})
+local OtherGamesTab = Window:Tab({Title = "🎮 其他遊戲", Icon = "gamepad"})
+local UniversalTab = Window:Tab({Title = "通用", Icon = "tool"})
+local ESPTab = Window:Tab({Title = "👀 ESP", Icon = "eye"})
+local PrisonLifeTab = Window:Tab({Title = "🔒 監獄人生", Icon = "lock"})
+local DesyncTab = Window:Tab({Title = "🌀 Desync", Icon = "shield-off"})
+local CriminalityTab = Window:Tab({Title = "💀 Criminality", Icon = "skull-crossed"})
+local SettingsTab = Window:Tab({Title = "⚡ 設定", Icon = "settings"})
 
-local HomeTab = Window:Tab({Icon = "home", Title = "🏠 首頁"})
-local PopularTab = Window:Tab({Icon = "trending-up", Title = "⭐ 熱門遊戲"})
-local MM2Tab = Window:Tab({Icon = "swords", Title = "🗡️ 殺手疑雲2"})
-local BedwarsTab = Window:Tab({Icon = "bed", Title = "🛏️ 床戰"})
-local RivalsTab = Window:Tab({Icon = "trophy", Title = "⚔️ 對手"})
-local DoorsTab = Window:Tab({Icon = "door-closed", Title = "🚪 門"})
-local ArsenalTab = Window:Tab({Icon = "crosshair", Title = "🎯 軍火庫"})
-local BrookhavenTab = Window:Tab({Icon = "city", Title = "🏡 布魯克海文RP"})
-local DeadRailsTab = Window:Tab({Icon = "train", Title = "🚂 死亡鐵路"})
-local ForsakenTab = Window:Tab({Icon = "skull", Title = "🔪 被遺棄"})
-local InkGameTab = Window:Tab({Icon = "pen-tool", Title = "🖊️ 墨水遊戲"})
-local StrongestBattlegroundsTab = Window:Tab({Icon = "fist", Title = "✋ 最強戰場"})
-local NightsForestTab = Window:Tab({Icon = "tree", Title = "🌲 森林99夜"})
-local OtherGamesTab = Window:Tab({Icon = "gamepad", Title = "🎮 其他遊戲"})
-local UniversalTab = Window:Tab({Icon = "tool", Title = "通用"})
-local ESPTab = Window:Tab({Icon = "eye", Title = "👀 ESP"})
-local PrisonLifeTab = Window:Tab({Icon = "lock", Title = "🔒 監獄人生"})
-local DesyncTab = Window:Tab({Icon = "shield-off", Title = "🌀 Desync"})
-local CriminalityTab = Window:Tab({Icon = "skull-crossed", Title = "💀 Criminality"})
-local SettingsTab = Window:Tab({Icon = "settings", Title = "⚡ 設定"})
-
+-- HomeTab 內容
 HomeTab:Section({ Title = "🎉 歡迎來到 Nova中心", TextSize = 22 })
 HomeTab:Divider()
 
@@ -157,6 +150,7 @@ HomeTab:Button({
     end
 })
 
+-- PopularTab 內容
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
 
@@ -187,37 +181,41 @@ PopularTab:Button({
         showNotification("⚡ YARHM", "已載入 YARHM！", 4, "zap")
     end
 })
-
+-- MM2Tab
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
 
 createScriptButton(MM2Tab, "MM2 TravHub", "完整功能 - 無需密鑰", "https://raw.githubusercontent.com/mm2scripthub/TravHub/refs/heads/main/MurderMystery2", "殺手疑雲2", "🌙")
 createScriptButton(MM2Tab, "MM2 自動農場", "管理指令與工具 - 無需密鑰", "https://raw.githubusercontent.com/renardofficiel/game/refs/heads/main/MurderMystery2/main.lua", "殺手疑雲2", "🛡️")
 
+-- BedwarsTab
 BedwarsTab:Section({ Title = "🛏️ 床戰 腳本", TextSize = 18 })
 BedwarsTab:Divider()
 
 createScriptButton(BedwarsTab, "BedWars Rust Hub", "完整床戰功能 - 無需密鑰", "https://raw.githubusercontent.com/0xEIite/rust/main/NewMainScript.lua", "床戰", "🦀")
 createScriptButton(BedwarsTab, "BedWars Vape V4", "高級床戰腳本，功能強大", "https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/NewMainScript.lua", "床戰", "💨")
 
+-- RivalsTab
 RivalsTab:Section({ Title = "⚔️ 對手 腳本", TextSize = 18 })
 RivalsTab:Divider()
 
 createScriptButton(RivalsTab, "RIVALS Rise", "進階對手腳本，自動功能齊全", "https://raw.githubusercontent.com/ShadowBey01/SHWX-Team-Rise-Scripts/refs/heads/main/Games/Rise%20(Rivals).lua", "對手", "🚀")
 
+-- DoorsTab
 DoorsTab:Section({ Title = "🚪 門 腳本", TextSize = 18 })
 DoorsTab:Divider()
 
 createScriptButton(DoorsTab, "DOORS Saturn Hub", "完整門腳本，實體規避", "https://raw.githubusercontent.com/JScripter-Lua/Saturn_Hub_Products/refs/heads/main/Saturn_Hub_Doors.lua", "門", "🪐")
 createScriptButton(DoorsTab, "DOORS Velocity X", "速度與生存功能", "https://raw.githubusercontent.com/DasVelocity/VelocityX/refs/heads/main/VelocityX.lua", "門", "💨")
 
+-- ArsenalTab
 ArsenalTab:Section({ Title = "🎯 軍火庫 腳本", TextSize = 18 })
 ArsenalTab:Divider()
 
 createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
 createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
 
--- 這是第 1 段
+-- BrookhavenTab
 BrookhavenTab:Section({ Title = "🏡 布魯克海文RP 腳本", TextSize = 18 })
 BrookhavenTab:Divider()
 
@@ -231,6 +229,7 @@ BrookhavenTab:Button({
     end
 })
 
+-- DeadRailsTab
 DeadRailsTab:Section({ Title = "🚂 死亡鐵路 腳本", TextSize = 18 })
 DeadRailsTab:Divider()
 
@@ -244,6 +243,7 @@ DeadRailsTab:Button({
     end
 })
 
+-- ForsakenTab
 ForsakenTab:Section({ Title = "🔪 被遺棄 腳本", TextSize = 18 })
 ForsakenTab:Divider()
 
@@ -258,6 +258,7 @@ ForsakenTab:Button({
     end
 })
 
+-- InkGameTab
 InkGameTab:Section({ Title = "🖊️ 墨水遊戲 腳本", TextSize = 18 })
 InkGameTab:Divider()
 
@@ -281,11 +282,13 @@ InkGameTab:Button({
     end
 })
 
+-- StrongestBattlegroundsTab
 StrongestBattlegroundsTab:Section({ Title = "✋ 最強戰場 腳本", TextSize = 18 })
 StrongestBattlegroundsTab:Divider()
 
 createScriptButton(StrongestBattlegroundsTab, "VexonHub", "最強腳本", "https://raw.githubusercontent.com/Tax-Script/TaxHub/refs/heads/main/VexonHub%20汉化", "最強戰場", "⚡")
 
+-- CriminalityTab
 CriminalityTab:Section({ Title = "💀 Criminality 腳本", TextSize = 18 })
 CriminalityTab:Divider()
 
@@ -299,6 +302,7 @@ CriminalityTab:Button({
     end
 })
 
+-- NightsForestTab
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
 NightsForestTab:Divider()
 
@@ -312,6 +316,7 @@ NightsForestTab:Button({
     end
 })
 
+-- PrisonLifeTab
 PrisonLifeTab:Section({ Title = "🔒 監獄人生 腳本", TextSize = 18 })
 PrisonLifeTab:Divider()
 
@@ -325,6 +330,7 @@ PrisonLifeTab:Button({
     end
 })
 
+-- DesyncTab
 DesyncTab:Section({ Title = "🌀 Desync 腳本", TextSize = 18 })
 DesyncTab:Divider()
 
@@ -347,8 +353,7 @@ DesyncTab:Button({
         showNotification("🌀 Desync", "需密鑰版已載入", 4, "shield")
     end
 })
-
--- 這是第 2 段
+-- UniversalTab 內容
 UniversalTab:Section({ Title = "通用 工具", TextSize = 20 })
 UniversalTab:Divider()
 
@@ -604,7 +609,7 @@ UserInputService.JumpRequest:Connect(function()
         if humanoid then humanoid:ChangeState("Jumping") end
     end
 end)
-
+-- ESPTab 內容
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 ESPTab:Divider()
 
@@ -674,6 +679,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
     end
 end)
 
+-- SettingsTab 內容
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
 SettingsTab:Divider()
 
@@ -705,7 +711,6 @@ SettingsTab:Slider({
     Value = { Min = 0, Max = 1, Default = 0.1, Step = 0.05 },
     Callback = function(value)
         WindUI.TransparencyValue = value
-        Window:ToggleTransparency(value > 0)
     end
 })
 
@@ -714,7 +719,6 @@ SettingsTab:Keybind({
     Desc = "設定顯示/隱藏介面的按鍵",
     Value = "RightControl",
     Callback = function(key)
-        Window:SetToggleKey(Enum.KeyCode[key])
         showNotification("⌨️ 快捷鍵", "介面開關鍵已設為：" .. key, 3, "keyboard")
     end
 })
@@ -797,20 +801,10 @@ SettingsTab:Button({
 })
 
 Window:SelectTab(HomeTab)
-Window:UnlockAll()
 
-Window:OnClose(function()
-    showNotification("🔥 Nova中心", "介面已隱藏！按 RightControl 重新開啟", 3, "eye-off")
-end)
-
-Window:OnOpen(function()
-    showNotification("🎉 Nova中心 - 已就緒！", "頂級通用腳本中心載入完成！\n🎮 享受升級遊戲體驗！", 5, "sparkles")
-end)
-
+-- 結尾
 wait(1)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Luna-Interface/refs/heads/main/source.lua"))()
 
 setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
-
--- 這是第 3 段
