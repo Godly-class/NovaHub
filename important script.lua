@@ -21,7 +21,7 @@ WindUI.TransparencyValue = 0.18
 local Window = WindUI:CreateWindow({
     Title = "Nova中心",
     Icon = "sparkles",
-    Author = "Godly-class",
+    Author = "by eert702",
     Folder = "NovaHub",
     Size = UDim2.fromOffset(620, 520),
     Acrylic = true,
@@ -100,6 +100,11 @@ HomeTab:Divider()
 HomeTab:Paragraph({
     Title = "🔥 Nova中心 - 二代",
     Desc = "Nova中心二代，更好看的Ui\n✨ 無需密鑰 • 定期更新 • 最佳效能"
+})
+
+HomeTab:Paragraph({
+    Title = "最優質的團隊",
+    Desc = "join No_Green_beans team in today!!"
 })
 
 HomeTab:Paragraph({
