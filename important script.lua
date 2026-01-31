@@ -407,70 +407,89 @@ UniversalTab:Button({
         end
     end
 })
+-- 共用變數（放在 Tab 外面，避免衝突）
+local lastInputTime = tick()
+local IDLE_THRESHOLD = 1140  -- 19 分鐘
+
+-- 監聽所有輸入，更新最後活動時間（放在 Tab 外面，全域生效）
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        lastInputTime = tick()
+    end
+end)
+
+-- 第一個按鈕：模擬滑鼠點擊防 AFK（適合 Unc 低版本）
 UniversalTab:Button({
-    Title = "Antiafk",
-    Desc = "Unc低於90可用",
+    Title = "Anti-AFK (模擬點擊)",
+    Desc = "Unc 低於 90% 可用，每 19 分鐘自動點一下中間",
+    Icon = "mouse-pointer",
+    Callback = function()
+        WindUI:Notify({
+            Title = "Anti-AFK 已啟動",
+            Content = "模擬點擊模式，每 19 分鐘自動點中間防止 AFK",
+            Duration = 5,
+            Icon = "mouse-pointer"
+        })
+
+        spawn(function()
+            while true do
+                task.wait(1)
+                if tick() - lastInputTime > IDLE_THRESHOLD then
+                    local cam = workspace.CurrentCamera
+                    if cam then
+                        local centerX = cam.ViewportSize.X / 2
+                        local centerY = cam.ViewportSize.Y / 2
+
+                        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+                        task.wait(0.05)
+                        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+
+                        lastInputTime = tick()  -- 重置計時
+                        print("Anti-AFK: 已模擬中間點擊一次")
+                    end
+                end
+            end
+        end)
+    end
+})
+
+-- 第二個按鈕：Hook namecall 防 AFK Kick（適合 Unc 高版本）
+UniversalTab:Button({
+    Title = "Anti-AFK (防 Kick)",
+    Desc = "Unc 高於 90% 可用，攔截 AFK 相關 Kick",
     Icon = "shield",
     Callback = function()
-        local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local LocalPlayer = Players.LocalPlayer
-
-local lastInput = tick()
-local IDLE_TIME = 1140  
-
-spawn(function()
-    while true do
-        task.wait(1)
-        if tick() - lastInput > IDLE_TIME then
-            VirtualInputManager:SendMouseButtonEvent(
-                workspace.CurrentCamera.ViewportSize.X / 2,
-                workspace.CurrentCamera.ViewportSize.Y / 2,
-                0, true, game, 1
-            )
-            task.wait(0.1)
-            VirtualInputManager:SendMouseButtonEvent(
-                workspace.CurrentCamera.ViewportSize.X / 2,
-                workspace.CurrentCamera.ViewportSize.Y / 2,
-                0, false, game, 1
-            )
-            lastInput = tick()
-            print("AntiAFK已啟動")
-        end
-    end
-end
-})
-UniversalTab:Button({
-    Title = "Anti Afk",
-    Desc = "Unc高於90%可用",
-    Icon = "sshield",
-    Callback = function()
         local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
+        local oldNamecall = mt.__namecall
 
-mt.__namecall = function(self, ...)
-    local method = getnamecallmethod()
-    
-    if method == "Kick" and tostring(self):find("LocalPlayer") then
-        local args = {...}
-        if typeof(args[1]) == "string" and (args[1]:lower():find("afk") or args[1]:lower():find("idle")) then
-            print("AntiAFK已啟動")
-            return
-        end
+        -- 先解鎖 metatable
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+
+            if method == "Kick" and self == LocalPlayer then
+                local args = {...}
+                local msg = tostring(args[1] or "")
+                if msg:lower():find("afk") or msg:lower():find("idle") or msg:lower():find("anti-afk") then
+                    print("Anti-AFK: 攔截到 AFK Kick → " .. msg)
+                    return  -- 直接攔截，不執行 Kick
+                end
+            end
+
+            return oldNamecall(self, ...)
+        end)
+
+        -- 重新鎖定 metatable
+        setreadonly(mt, true)
+
+        WindUI:Notify({
+            Title = "Anti-AFK Kick 已啟動",
+            Content = "已 hook namecall，會攔截 AFK/Idle 相關的 Kick",
+            Duration = 5,
+            Icon = "shield-check"
+        })
     end
-    
-    return oldNamecall(self, ...)
-end
-
-setreadonly(mt, true)
-})
-                    
-
-UserInputService.InputBegan:Connect(function()
-    lastInput = tick()
-end)
 })
 UniversalTab:Button({
     Title = "Anti Kick (LocalScript)",
