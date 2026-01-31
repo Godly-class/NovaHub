@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua"))()
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/UI-Libraries/main/WindUI/Source.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -133,6 +133,25 @@ HomeTab:Button({
     end
 })
 
+HomeTab:Button({
+    Title = "📊 查看伺服器狀態",
+    Desc = "顯示當前伺服器名稱、ID、人數資訊",
+    Icon = "server",
+    Callback = function()
+        local currentPlayers = #Players:GetPlayers()
+        local maxPlayers = Players.MaxPlayers
+        local serverName = game.JobId ~= "" and game.JobId or "本地/私人伺服器"
+        local placeId = game.PlaceId
+        
+        local message = string.format(
+            "伺服器名稱: %s\nPlace ID: %d\n目前人數: %d / 滿人數 %d",
+            serverName, placeId, currentPlayers, maxPlayers
+        )
+        
+        showNotification("📊 伺服器狀態", message, 8, "server")
+    end
+})
+
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
 
@@ -164,7 +183,6 @@ PopularTab:Button({
     end
 })
 
--- 這是第 1 段
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
 
@@ -194,6 +212,7 @@ ArsenalTab:Divider()
 createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
 createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
 
+-- 這是第 1 段
 BrookhavenTab:Section({ Title = "🏡 布魯克海文RP 腳本", TextSize = 18 })
 BrookhavenTab:Divider()
 
@@ -328,7 +347,7 @@ DesyncTab:Button({
 UniversalTab:Section({ Title = "通用 工具", TextSize = 20 })
 UniversalTab:Divider()
 
--- 快速互動
+-- 快速互動（ProximityPrompt 0秒）
 local fastInteractEnabled = false
 local originalPrompts = {}
 
@@ -424,7 +443,7 @@ UniversalTab:Button({
     end
 })
 
--- 飛行功能
+-- 飛行功能（支援手機）
 local flyEnabled = false
 local flyConnection
 local flySpeed = 50
@@ -617,7 +636,7 @@ end
 
 ESPTab:Toggle({
     Title = "👀 ESP 總開關 (Highlight)",
-    Desc = "開啟/關閉高亮顯示",
+    Desc = "開啟/關閉高亮顯示（已修復關閉後不消失）",
     Value = false,
     Callback = function(state)
         espEnabled = state
