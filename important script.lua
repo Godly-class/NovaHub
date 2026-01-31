@@ -408,6 +408,71 @@ UniversalTab:Button({
     end
 })
 UniversalTab:Button({
+    Title = "Antiafk",
+    Desc = "Unc低於90可用",
+    Icon = "shield",
+    Callback = function()
+        local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+
+local lastInput = tick()
+local IDLE_TIME = 1140  
+
+spawn(function()
+    while true do
+        task.wait(1)
+        if tick() - lastInput > IDLE_TIME then
+            VirtualInputManager:SendMouseButtonEvent(
+                workspace.CurrentCamera.ViewportSize.X / 2,
+                workspace.CurrentCamera.ViewportSize.Y / 2,
+                0, true, game, 1
+            )
+            task.wait(0.1)
+            VirtualInputManager:SendMouseButtonEvent(
+                workspace.CurrentCamera.ViewportSize.X / 2,
+                workspace.CurrentCamera.ViewportSize.Y / 2,
+                0, false, game, 1
+            )
+            lastInput = tick()
+            print("AntiAFK已啟動")
+        end
+    end
+end
+})
+UniversalTab:Button({
+    Title = "Anti Afk",
+    Desc = "Unc高於90%可用",
+    Icon = "sshield",
+    Callback = function()
+        local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = function(self, ...)
+    local method = getnamecallmethod()
+    
+    if method == "Kick" and tostring(self):find("LocalPlayer") then
+        local args = {...}
+        if typeof(args[1]) == "string" and (args[1]:lower():find("afk") or args[1]:lower():find("idle")) then
+            print("AntiAFK已啟動")
+            return
+        end
+    end
+    
+    return oldNamecall(self, ...)
+end
+
+setreadonly(mt, true)
+})
+                    
+
+UserInputService.InputBegan:Connect(function()
+    lastInput = tick()
+end)
+})
+UniversalTab:Button({
     Title = "Anti Kick (LocalScript)",
     Desc = "防本地 Kick / Destroy / Health 歸零",
     Icon = "shield",
