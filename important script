@@ -23,8 +23,20 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
--- 修正第 26 行：用 Vynixius 官方建立視窗方式
-local Window = Vynixius:CreateWindow("🔥 Nova中心", "DarkTheme")
+-- 修正視窗建立（第 27 行左右）：用 Vynixius 常見方法
+local Window
+if Vynixius.CreateWindow then
+    Window = Vynixius:CreateWindow("🔥 Nova中心", "DarkTheme")
+elseif Vynixius.Window then
+    Window = Vynixius:Window("🔥 Nova中心", "DarkTheme")
+else
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Vynixius UI 錯誤",
+        Text = "找不到 CreateWindow 或 Window 方法",
+        Duration = 10
+    })
+    return
+end
 
 local function showNotification(title, content, duration, icon)
     Vynixius:Notify({
