@@ -16,7 +16,7 @@ StarterGui:SetCore("SendNotification", {
 })
 
 WindUI.TransparencyValue = 0.1
-WindUI:SetTheme("Dark")
+-- WindUI:SetTheme("Dark")
 
 local Window = WindUI:CreateWindow({
     Title = "🔥 Nova中心",
