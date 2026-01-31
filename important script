@@ -2,7 +2,7 @@ local success, Vynixius = pcall(loadstring, game:HttpGet("https://raw.githubuser
 if not success or not Vynixius then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Vynixius UI 載入失敗",
-        Text = "錯誤: " .. tostring(Vynixius) .. "\n請檢查網路或連結",
+        Text = "錯誤: " .. tostring(Vynixius) .. "\n請檢查網路或 executor",
         Duration = 10
     })
     return
@@ -23,11 +23,8 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
-local Window = Vynixius:CreateWindow({
-    Title = "🔥 Nova中心",
-    Theme = "Dark",
-    Size = UDim2.fromOffset(650, 550),
-})
+-- 修正第 26 行：用 Vynixius 官方建立視窗方式
+local Window = Vynixius:CreateWindow("🔥 Nova中心", "DarkTheme")
 
 local function showNotification(title, content, duration, icon)
     Vynixius:Notify({
@@ -288,7 +285,7 @@ UniversalTab:NewButton("切換伺服器", "隨機切換到全新伺服器", func
     end
 end)
 
--- 飛行
+-- 飛行功能
 local flyEnabled = false
 local flyConnection
 local flySpeed = 50
@@ -492,7 +489,7 @@ local themes = {
 
 SettingsTab:NewDropdown("🎭 介面主題", "更改介面主題與配色", themes, "Dark 🌙", function(value)
     local themeName = string.gsub(value, " [%p%w]*$", "")
-    Vynixius:SetTheme(themeName)  -- Vynixius 可能用 SetTheme 或 ChangeTheme
+    Vynixius:SetTheme(themeName)
     showNotification("🎭 主題", "介面主題已設為：" .. value, 3, "palette")
 end)
 
