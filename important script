@@ -408,26 +408,59 @@ UniversalTab:Button({
     end
 })
 UniversalTab:Button({
-    Title = "Anti ban",
-    Desc = "僅防禦localscript kick",
-    Icon = "skull",
+    Title = "Anti Kick (LocalScript)",
+    Desc = "防本地 Kick / Destroy / Health 歸零",
+    Icon = "shield",
     Callback = function()
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local count = 0
-
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    
-    if self == LocalPlayer and method == "Kick" then
-        count = count + 1
-        print("防禦×" .. count)
-        return
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        local count = 0
+        
+        -- hook namecall
+        local oldNamecall
+        local hooked = pcall(function()
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                
+                if self == LocalPlayer then
+                    if method == "Kick" or method == "Destroy" then
+                        count = count + 1
+                        print("防禦本地 Kick/Destroy ×" .. count)
+                        return
+                    end
+                end
+                
+                if method == "FireServer" and self.Name == "someRemoteThatKills" then  -- 如果知道特定 remote
+                    print("攔截可疑 remote")
+                    return
+                end
+                
+                return oldNamecall(self, ...)
+            end)
+        end)
+        
+        if not hooked then
+            warn("hookmetamethod 失敗")
+        end
+        
+        -- 防 Health 歸零（部分遊戲用這個踢人）
+        spawn(function()
+            while true do
+                task.wait(0.1)
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health <= 0 then
+                        hum.Health = 1  -- 強制拉回滿血
+                        print("防 Health 歸零")
+                    end
+                end
+            end
+        end)
+        
+        print("Anti Kick 已啟用")
     end
-    
-    return oldNamecall(self, ...)
-end
 })
 
 UniversalTab:Button({
