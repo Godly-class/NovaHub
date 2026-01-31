@@ -412,6 +412,7 @@ UniversalTab:Button({
         end
     end
 })
+UniversalTab:Divider()
 -- 共用變數（放在 Tab 外面，避免衝突）
 local lastInputTime = tick()
 local IDLE_THRESHOLD = 1140  -- 19 分鐘
@@ -496,6 +497,8 @@ UniversalTab:Button({
         })
     end
 })
+
+UniversalTab:Divider()
 UniversalTab:Button({
     Title = "Anti Kick (LocalScript)",
     Desc = "防本地 Kick / Destroy / Health 歸零",
@@ -551,6 +554,7 @@ UniversalTab:Button({
         print("Anti Kick 已啟用")
     end
 })
+UniversalTab:Divider()
 
 UniversalTab:Button({
     Title = "重新加入",
@@ -596,6 +600,8 @@ UniversalTab:Button({
         end
     end
 })
+UniversalTab:Divider()
+
 
 -- 飛行功能（支援手機）
 local flyEnabled = false
@@ -615,7 +621,8 @@ local function startFly()
         
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bodyVelocity.MUniversalTab:Divider()
+        axForce = Vector3.new(1e5, 1e5, 1e5)
         bodyVelocity.Parent = rootPart
         
         bodyGyro = Instance.new("BodyGyro")
