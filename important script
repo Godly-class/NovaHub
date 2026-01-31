@@ -23,7 +23,7 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
--- 第 27 行修復：防錯建立視窗
+-- 第 27~28 行修復：防錯建立視窗
 local Window
 if Vynixius.CreateWindow then
     Window = Vynixius:CreateWindow("🔥 Nova中心", "DarkTheme")
@@ -34,10 +34,20 @@ elseif Vynixius.CreateLib then
 else
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Vynixius UI 錯誤",
-        Text = "找不到建立視窗的方法 (CreateWindow/Window/CreateLib 皆 nil)\n建議換來源：https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua",
-        Duration = 15
+        Text = "找不到建立視窗的方法\n已自動換用 Footagesus WindUI 來源",
+        Duration = 10
     })
-    return
+    -- 自動回退到穩定來源
+    local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua"))()
+    Window = WindUI:CreateWindow({
+        Title = "🔥 Nova中心",
+        Icon = "sparkles",
+        Size = UDim2.fromOffset(650, 550),
+        Theme = "Dark",
+        HidePanelBackground = true,
+        Acrylic = false,
+        SideBarWidth = 280,
+    })
 end
 
 local function showNotification(title, content, duration, icon)
@@ -119,20 +129,6 @@ HomeTab:NewButton("🔄 重新整理中心", "重新載入中心以獲取最新�
     showNotification("🔄 重新整理中", "Nova中心正在重新載入...", 3, "refresh-cw")
     wait(2)
     Window:SelectTab(HomeTab)
-end)
-
-HomeTab:NewButton("📊 查看伺服器狀態", "顯示當前伺服器名稱、ID、人數資訊", function()
-    local currentPlayers = #Players:GetPlayers()
-    local maxPlayers = Players.MaxPlayers
-    local serverName = game.JobId ~= "" and game.JobId or "本地/私人伺服器"
-    local placeId = game.PlaceId
-    
-    local message = string.format(
-        "伺服器名稱: %s\nPlace ID: %d\n目前人數: %d / 滿人數 %d",
-        serverName, placeId, currentPlayers, maxPlayers
-    )
-    
-    showNotification("📊 伺服器狀態", message, 10, "server")
 end)
 
 PopularTab:NewSection("⭐ 最熱門腳本")
