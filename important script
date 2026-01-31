@@ -407,6 +407,28 @@ UniversalTab:Button({
         end
     end
 })
+UniversalTab:Button({
+    Title = "Anti ban",
+    Desc = "僅防禦localscript kick",
+    Icon = "skull",
+    Callback = function()
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local count = 0
+
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    
+    if self == LocalPlayer and method == "Kick" then
+        count = count + 1
+        print("防禦×" .. count)
+        return
+    end
+    
+    return oldNamecall(self, ...)
+end)
+})
 
 UniversalTab:Button({
     Title = "重新加入",
