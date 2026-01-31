@@ -420,8 +420,8 @@ end)
 
 -- 第一個按鈕：模擬滑鼠點擊防 AFK（適合 Unc 低版本）
 UniversalTab:Button({
-    Title = "Anti-AFK (模擬點擊)",
-    Desc = "Unc 低於 90% 可用，每 19 分鐘自動點一下中間",
+    Title = "Anti-AFK (1)",
+    Desc = "Unc 低於 90% 可用",
     Icon = "mouse-pointer",
     Callback = function()
         WindUI:Notify({
@@ -455,8 +455,8 @@ UniversalTab:Button({
 
 -- 第二個按鈕：Hook namecall 防 AFK Kick（適合 Unc 高版本）
 UniversalTab:Button({
-    Title = "Anti-AFK (防 Kick)",
-    Desc = "Unc 高於 90% 可用，攔截 AFK 相關 Kick",
+    Title = "Anti-AFK (2)",
+    Desc = "Unc 高於 90% 可用",
     Icon = "shield",
     Callback = function()
         local mt = getrawmetatable(game)
@@ -485,7 +485,7 @@ UniversalTab:Button({
 
         WindUI:Notify({
             Title = "Anti-AFK Kick 已啟動",
-            Content = "已 hook namecall，會攔截 AFK/Idle 相關的 Kick",
+            Content = "Enjoy",
             Duration = 5,
             Icon = "shield-check"
         })
