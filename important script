@@ -15,32 +15,32 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
--- WindUI.TransparencyValue = 0.1
--- WindUI:SetTheme("Dark")
-
+-- 建立主視窗（使用正確的 AddWindow 方法）
 local Window = WindUI:AddWindow({
-    Title = "🔥 Nova中心",
-    Icon = "sparkles",
-    Author = "支援25+款遊戲",
-    Folder = "NovaCenter",
-    Size = UDim2.fromOffset(650, 550),
-    Theme = "Dark",
-    HidePanelBackground = true,
-    Acrylic = false,
-    HideSearchBar = false,
-    SideBarWidth = 280,
-    BackgroundImageTransparency = 0.8,
+    title = {"🔥 Nova中心", "支援25+遊戲"},   -- 可以用 table 做兩行標題，更好看
+    toggled = true,                             -- 預設顯示
+    key = Enum.KeyCode.RightControl,            -- 快捷鍵開關（可改成 Insert / RightShift 等）
+    theme = {                                   -- 強制暗黑風格主題
+        ThemeColor = Color3.fromRGB(100, 150, 255),   -- 主色調（藍紫）
+        TopbarColor = Color3.fromRGB(20, 20, 25),
+        SidebarColor = Color3.fromRGB(15, 15, 20),
+        BackgroundColor = Color3.fromRGB(10, 10, 15),
+        SectionColor = Color3.fromRGB(20, 20, 25),
+        TextColor = Color3.fromRGB(220, 220, 230),
+    }
 })
 
+-- 自訂通知函數（用 WindUI:Notify）
 local function showNotification(title, content, duration, icon)
     WindUI:Notify({
         Title = title,
         Content = content,
         Duration = duration or 4,
-        Icon = icon or "check-circle"
+        Icon = icon or "check-circle"   -- Vynixius 支援的 icon 名稱
     })
 end
 
+-- 載入腳本的通用函數（保持原樣，但用新的通知）
 local function loadScript(scriptName, scriptUrl, description, gameName)
     showNotification("🔄 載入中...", scriptName .. " 正在載入...", 2)
     
@@ -64,6 +64,7 @@ local function loadScript(scriptName, scriptUrl, description, gameName)
     end
 end
 
+-- 建立按鈕的通用函數（注意：這裡用 Tab:Button 而非 Tab:CreateButton）
 local function createScriptButton(tab, name, description, url, gameName, emoji)
     tab:Button({
         Title = emoji .. " " .. name,
@@ -74,6 +75,10 @@ local function createScriptButton(tab, name, description, url, gameName, emoji)
         end
     })
 end
+
+-- 從這裡開始就是你原本的 Tab 建立部分，可以直接接下去
+-- local HomeTab = Window:Tab({Icon = "home", Title = "🏠 首頁"})
+-- ... 其他 Tab、Section、Button 保持原樣
 
 local HomeTab = Window:Tab({Icon = "home", Title = "🏠 首頁"})
 local PopularTab = Window:Tab({Icon = "trending-up", Title = "⭐ 熱門遊戲"})
