@@ -86,11 +86,12 @@ local InkGameTab = Window:Tab({Title = "🖊️ 墨水遊戲", Icon = "pen-tool"
 local StrongestBattlegroundsTab = Window:Tab({Title = "✋ 最強戰場", Icon = "fist"})
 local NightsForestTab = Window:Tab({Title = "🌲 森林99夜", Icon = "tree"})
 local OtherGamesTab = Window:Tab({Title = "🎮 其他遊戲", Icon = "gamepad"})
-local UniversalTab = Window:Tab({Title = "通用", Icon = "tool"})
+local UniversalTab = Window:Tab({Title = "⚒️ 通用", Icon = "tool"})
 local ESPTab = Window:Tab({Title = "👀 ESP", Icon = "eye"})
 local PrisonLifeTab = Window:Tab({Title = "🔒 監獄人生", Icon = "lock"})
 local DesyncTab = Window:Tab({Title = "🌀 Desync", Icon = "shield-off"})
 local CriminalityTab = Window:Tab({Title = "💀 Criminality", Icon = "skull-crossed"})
+local MusicTab = Window:Tab({Title = "🎶 音樂播放器", Icon = "shield"})
 local SettingsTab = Window:Tab({Title = "⚡ 設定", Icon = "settings"})
 
 -- HomeTab 內容
@@ -831,6 +832,158 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         startFly()
     end
 end)
+
+MusicTab:Section({ Title = "🎶音樂播放", TextSize = 20 })
+MusicTab:Divider()
+
+-- MusicTab 內容
+MusicTab:Section({Title = "音樂播放器", TextSize = 20})
+MusicTab:Divider()
+
+-- 目前播放的 Sound 物件（全域變數，方便控制）
+local currentSound = nil
+local currentVolume = 0.5   -- 預設音量 50%
+local currentSpeed = 1.0    -- 預設正常速度
+
+-- 輸入音樂 ID
+MusicTab:Input({
+    Title = "輸入音樂 ID",
+    Desc = "貼上id",
+    Placeholder = "請輸入文本",
+    Callback = function(value)
+        local soundId = tonumber(value)
+        if not soundId then
+            WindUI:Notify({
+                Title = "錯誤",
+                Content = "請輸入有效的數字 ID",
+                Duration = 4,
+                Icon = "alert-triangle"
+            })
+            return
+        end
+
+        -- 停止舊音樂
+        if currentSound then
+            currentSound:Stop()
+            currentSound:Destroy()
+            currentSound = nil
+        end
+
+        -- 建立新 Sound
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. soundId
+        sound.Volume = currentVolume
+        sound.PlaybackSpeed = currentSpeed
+        sound.Looped = true  -- 循環播放（可改成 false）
+        sound.Parent = workspace  -- 或 LocalPlayer.PlayerGui
+
+        sound:Play()
+
+        currentSound = sound
+
+        WindUI:Notify({
+            Title = "正在播放",
+            Content = "音樂 ID: " .. soundId .. "\n音量: " .. math.floor(currentVolume*100) .. "%\n速度: x" .. currentSpeed,
+            Duration = 5,
+            Icon = "music"
+        })
+    end
+})
+
+-- 音量滑桿
+MusicTab:Slider({
+    Title = "音量",
+    Desc = "調整音樂大小",
+    Value = {Min = 0, Max = 500, Default = 50, Step = 1},
+    Callback = function(value)
+        currentVolume = value / 100
+        if currentSound then
+            currentSound.Volume = currentVolume
+        end
+        WindUI:Notify({
+            Title = "音量調整",
+            Content = "現在音量: " .. value .. "%",
+            Duration = 3,
+            Icon = "volume-2"
+        })
+    end
+})
+
+-- 播放速度滑桿
+MusicTab:Slider({
+    Title = "播放速度",
+    Desc = "調整音樂快慢 ",
+    Value = {Min = 0.1, Max = 10.0, Default = 1.0, Step = 0.1},
+    Callback = function(value)
+        currentSpeed = value
+        if currentSound then
+            currentSound.PlaybackSpeed = currentSpeed
+        end
+        WindUI:Notify({
+            Title = "速度調整",
+            Content = "現在速度: x" .. value,
+            Duration = 3,
+            Icon = "fast-forward"
+        })
+    end
+})
+
+MusicTab:Divider()
+
+MusicTab:Section({Title = "推薦音樂", TextSize = 18})
+
+-- 三個推薦音樂按鈕（你自己改 ID 和名稱）
+MusicTab:Button({
+    Title = "Rick Roll",
+    Desc = "依舊詐騙",
+    Icon = "music-2",
+    Callback = function()
+        -- 直接填入 ID 觸發輸入 Callback 的邏輯
+        local inputCallback = MusicTab.Input.Callback  -- 取得輸入框的 Callback
+        if inputCallback then
+            inputCallback("1842612729")
+        end
+    end
+})
+
+MusicTab:Button({
+    Title = "沈める街",
+    Desc = "btw不是沈陽大街",
+    Icon = "music-3",
+    Callback = function()
+        local inputCallback = MusicTab.Input.Callback
+        if inputCallback then
+            inputCallback("76668137537045")
+        end
+    end
+})
+
+MusicTab:Button({
+    Title = "jumpstyle",
+    Desc = "backdoor skid",
+    Icon = "star",
+    Callback = function()
+        local inputCallback = MusicTab.Input.Callback
+        if inputCallback then
+            inputCallback("1839246711")
+        end
+    end
+})
+
+-- 可選：停止音樂按鈕
+MusicTab:Button({
+    Title = "停止播放",
+    Desc = "關閉目前音樂",
+    Icon = "stop-circle",
+    Callback = function()
+        if currentSound then
+            currentSound:Stop()
+            currentSound:Destroy()
+            currentSound = nil
+            WindUI:Notify({Title = "已停止", Content = "音樂已關閉", Duration = 4})
+        end
+    end
+})
 
 -- SettingsTab 內容
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
