@@ -159,6 +159,7 @@ HomeTab:Button({
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
 
+createScriptButton(RivalsTab, "通用靜默自瞄", "幾乎全遊戲通用", "https://atlasteam.live/silentaim", "全遊戲", "🚀")
 createScriptButton(PopularTab, "Infinite Yield", "進階管理指令，功能豐富", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", "全遊戲", "👑")
 createScriptButton(PopularTab, "Orca Hub", "多遊戲通用腳本中心", "https://raw.githubusercontent.com/richie0866/orca/master/public/latest.lua", "全遊戲", "🐋")
 createScriptButton(PopularTab, "Dark Dex", "強大的腳本瀏覽與反編譯工具", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua", "全遊戲", "🔍")
@@ -204,6 +205,7 @@ createScriptButton(BedwarsTab, "BedWars Vape V4", "高級床戰腳本，功能�
 RivalsTab:Section({ Title = "⚔️ 對手 腳本", TextSize = 18 })
 RivalsTab:Divider()
 
+createScriptButton(RivalsTab, "kiciahook2.0", "目前最強腳本", "https://raw.githubusercontent.com/kiciahook/kiciahook/refs/heads/main/loader.luau", "對手", "🌟")
 createScriptButton(RivalsTab, "RIVALS Rise", "進階對手腳本，自動功能齊全", "https://raw.githubusercontent.com/ShadowBey01/SHWX-Team-Rise-Scripts/refs/heads/main/Games/Rise%20(Rivals).lua", "對手", "🚀")
 
 -- DoorsTab
