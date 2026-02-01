@@ -94,6 +94,7 @@ local CriminalityTab = Window:Tab({Title = "💀 Criminality", Icon = "skull-cro
 local SettingsTab = Window:Tab({Title = "⚡ 設定", Icon = "settings"})
 
 -- HomeTab 內容
+Tab:Select() -- Select Tab
 HomeTab:Section({ Title = "🎉 歡迎來到 Nova中心", TextSize = 22 })
 HomeTab:Divider()
 
