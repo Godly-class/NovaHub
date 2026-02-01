@@ -606,13 +606,14 @@ UniversalTab:Button({
 UniversalTab:Divider()
 
 -- UniversalTab 內的無限體力功能
-UniversalTab:Section({Title = "無限體力 (Universal)", TextSize = 18})
+UniversalTab:Section({Title = "無限體力", TextSize = 18})
 UniversalTab:Divider()
 
 UniversalTab:Paragraph({
     Title = "說明",
-    Desc = "通用無限體力腳本（2026 更新版）\n透過 hook + getgc 固定體力值\n適用大部分遊戲，但非 100% 通用\n開啟後每 0.5 秒保活一次"
-})
+    Desc = "通用無限體力腳本"
+    })
+        
 
 local staminaEnabled = false
 local staminaConnection  -- 用來儲存 Heartbeat 連線
