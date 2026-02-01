@@ -504,7 +504,7 @@ UniversalTab:Button({
 UniversalTab:Divider()
 UniversalTab:Button({
     Title = "Anti Kick (LocalScript)",
-    Desc = "防本地 Kick / Destroy / Health 歸零",
+    Desc = "效果有限",
     Icon = "shield",
     Callback = function()
         local Players = game:GetService("Players")
@@ -604,6 +604,164 @@ UniversalTab:Button({
     end
 })
 UniversalTab:Divider()
+
+-- UniversalTab 內的無限體力功能
+UniversalTab:Section({Title = "無限體力 (Universal)", TextSize = 18})
+UniversalTab:Divider()
+
+UniversalTab:Paragraph({
+    Title = "說明",
+    Desc = "通用無限體力腳本（2026 更新版）\n透過 hook + getgc 固定體力值\n適用大部分遊戲，但非 100% 通用\n開啟後每 0.5 秒保活一次"
+})
+
+local staminaEnabled = false
+local staminaConnection  -- 用來儲存 Heartbeat 連線
+
+UniversalTab:Toggle({
+    Title = "啟用無限體力",
+    Desc = "開啟後體力固定 100，防消耗",
+    Value = false,
+    Callback = function(state)
+        staminaEnabled = state
+        
+        if state then
+            WindUI:Notify({
+                Title = "無限體力 已啟用",
+                Content = "體力固定 100，防消耗 & 低頻保活中...",
+                Duration = 5,
+                Icon = "battery-full"
+            })
+            
+            -- 開始執行無限體力邏輯
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local LocalPlayer = Players.LocalPlayer
+            
+            local INF_STAMINA = 100
+            
+            -- Step 1: getgc 掃描並固定體力 table
+            local function findAndHookStamina()
+                for _, v in pairs(getgc(true)) do
+                    if type(v) == "table" then
+                        local keys = {"_stamina", "Stamina", "_baseMax", "_Max", "maxStamina", "MaxStamina"}
+                        for _, key in ipairs(keys) do
+                            if rawget(v, key) ~= nil then
+                                rawset(v, key, INF_STAMINA)
+                                -- 額外固定當前體力
+                                if key ~= "_stamina" then
+                                    rawset(v, "_stamina", INF_STAMINA)
+                                end
+                                print("Hooked stamina table: " .. key .. " -> " .. INF_STAMINA)
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Step 2: hook namecall
+            local oldNamecall
+            local hooked = pcall(function()
+                oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                    local method = getnamecallmethod()
+                    local args = {...}
+                    
+                    if method == "InvokeServer" or method == "FireServer" then
+                        if tostring(self):lower():find("stamina") or getnamecallmethod():lower():find("stamina") then
+                            return INF_STAMINA
+                        end
+                    end
+                    
+                    if (method == "FireServer" or method == "InvokeServer") and 
+                       (tostring(self):find("Stamina") or (args[1] and type(args[1]) == "number")) then
+                        return  -- 攔截消耗
+                    end
+                    
+                    return oldNamecall(self, ...)
+                end)
+            end)
+            
+            if not hooked then
+                print("hookmetamethod 失敗，使用備用模式")
+            end
+            
+            -- Step 3: hookfunction 備用（舊執行器）
+            if hookfunction then
+                for _, func in pairs(getgc(true)) do
+                    if type(func) == "function" then
+                        local info = debug.getinfo(func)
+                        if info and info.name and info.name:lower():find("stamina") then
+                            hookfunction(func, function(...)
+                                return INF_STAMINA
+                            end)
+                        end
+                    end
+                end
+            end
+            
+            -- Step 4: 禁用消耗倍率
+            pcall(function()
+                LocalPlayer:SetAttribute("StaminaConsumeMultiplier", 0)
+                LocalPlayer:GetAttributeChangedSignal("StaminaConsumeMultiplier"):Connect(function()
+                    LocalPlayer:SetAttribute("StaminaConsumeMultiplier", 0)
+                end)
+            end)
+            
+            -- Step 5: 隱藏體力條（如果存在）
+            pcall(function()
+                local pg = LocalPlayer:WaitForChild("PlayerGui")
+                for _, gui in pairs(pg:GetDescendants()) do
+                    if gui:IsA("Frame") or gui:IsA("ImageLabel") then
+                        if gui.Name:lower():find("stamina") or gui.Name:lower():find("energy") then
+                            gui.Visible = false
+                        end
+                    end
+                end
+            end)
+            
+            -- Step 6: 低頻保活（每 30 幀 ~0.5 秒掃一次）
+            local frameCount = 0
+            staminaConnection = RunService.Heartbeat:Connect(function()
+                if not staminaEnabled then return end
+                
+                frameCount = frameCount + 1
+                if frameCount >= 30 then
+                    findAndHookStamina()
+                    frameCount = 0
+                end
+            end)
+            
+            -- 立即執行一次
+            findAndHookStamina()
+            print("Universal Infinite Stamina Activated!")
+            
+        else
+            -- 關閉時清理
+            WindUI:Notify({
+                Title = "無限體力 已關閉",
+                Content = "體力恢復正常",
+                Duration = 4,
+                Icon = "battery-low"
+            })
+            
+            if staminaConnection then
+                staminaConnection:Disconnect()
+                staminaConnection = nil
+            end
+            
+            -- 可選：恢復體力條顯示（如果需要）
+            pcall(function()
+                local pg = LocalPlayer.PlayerGui
+                for _, gui in pairs(pg:GetDescendants()) do
+                    if gui:IsA("Frame") or gui:IsA("ImageLabel") then
+                        if gui.Name:lower():find("stamina") or gui.Name:lower():find("energy") then
+                            gui.Visible = true
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
 
 
 -- 飛行功能（支援手機）
