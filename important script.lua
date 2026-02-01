@@ -21,7 +21,7 @@ WindUI.TransparencyValue = 0.18
 local Window = WindUI:CreateWindow({
     Title = "Nova中心",
     Icon = "sparkles",
-    Author = "by eert702",
+    Author = "by eert602",
     Folder = "NovaHub",
     Size = UDim2.fromOffset(620, 520),
     Acrylic = true,
@@ -163,7 +163,7 @@ createScriptButton(RivalsTab, "通用靜默自瞄", "幾乎全遊戲通用", "ht
 createScriptButton(PopularTab, "Infinite Yield", "進階管理指令，功能豐富", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", "全遊戲", "👑")
 createScriptButton(PopularTab, "Orca Hub", "多遊戲通用腳本中心", "https://raw.githubusercontent.com/richie0866/orca/master/public/latest.lua", "全遊戲", "🐋")
 createScriptButton(PopularTab, "Dark Dex", "強大的腳本瀏覽與反編譯工具", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua", "全遊戲", "🔍")
-createScriptButton(PopularTab, "Nova中心（舊版）", "已落幕，但是最經典", "https://pastebin.com/raw/4iL0zJn7", "全遊戲", "⭐")
+createScriptButton(PopularTab, "Nova中心（舊版）", "已落幕，但是最經典", "https://pastebin.com/raw/v4DkDbpU", "全遊戲", "⭐")
 createScriptButton(PopularTab, "TX腳本中心", "國內最強", "https://github.com/devslopo/DVES/raw/main/XK%20Hub", "全遊戲", "🇨🇳")
 createScriptButton(PopularTab, "BS黑洞中心", "強力通用腳本", "https://gitee.com/BS_script/script/raw/master/BS_Script.Luau", "全遊戲", "🕳️")
 createScriptButton(PopularTab, "kral", "Xi團隊破解", "https://raw.githubusercontent.com/2721284198-dev/kj/refs/heads/main/kanl", "全遊戲", "⚡")
