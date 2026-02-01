@@ -159,7 +159,7 @@ HomeTab:Button({
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
 
-createScriptButton(RivalsTab, "通用靜默自瞄", "幾乎全遊戲通用", "https://atlasteam.live/silentaim", "全遊戲", "🚀")
+createScriptButton(PopularTab, "通用靜默自瞄", "幾乎全遊戲通用", "https://atlasteam.live/silentaim", "全遊戲", "🚀")
 createScriptButton(PopularTab, "Infinite Yield", "進階管理指令，功能豐富", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", "全遊戲", "👑")
 createScriptButton(PopularTab, "Orca Hub", "多遊戲通用腳本中心", "https://raw.githubusercontent.com/richie0866/orca/master/public/latest.lua", "全遊戲", "🐋")
 createScriptButton(PopularTab, "Dark Dex", "強大的腳本瀏覽與反編譯工具", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua", "全遊戲", "🔍")
