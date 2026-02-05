@@ -1097,12 +1097,7 @@ MusicTab:Button({
     Desc = "依舊詐騙",
     Icon = "music-2",
     Callback = function()
-        -- 直接填入 ID 觸發輸入 Callback 的邏輯
-        local inputCallback = MusicTab.Input.Callback  -- 取得輸入框的 Callback
-        if inputCallback then
-            inputCallback("1842612729")
-        end
-    end
+            setclipboard("1842612729")
 })
 
 MusicTab:Button({
@@ -1110,11 +1105,7 @@ MusicTab:Button({
     Desc = "btw不是沈陽大街",
     Icon = "music-3",
     Callback = function()
-        local inputCallback = MusicTab.Input.Callback
-        if inputCallback then
-            inputCallback("76668137537045")
-        end
-    end
+            setclipboard("76668137537045")
 })
 
 MusicTab:Button({
@@ -1122,11 +1113,7 @@ MusicTab:Button({
     Desc = "backdoor skid",
     Icon = "star",
     Callback = function()
-        local inputCallback = MusicTab.Input.Callback
-        if inputCallback then
-            inputCallback("1839246711")
-        end
-    end
+            setclipboard("1839246711")
 })
 
 -- 可選：停止音樂按鈕
@@ -1139,7 +1126,7 @@ MusicTab:Button({
             currentSound:Stop()
             currentSound:Destroy()
             currentSound = nil
-            WindUI:Notify({Title = "已停止", Content = "音樂已關閉", Duration = 4})
+            WindUI:Notify({Title =   "停止", Content = "音樂已關閉", Duration = 4})
         end
     end
 })
