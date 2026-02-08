@@ -1,10 +1,10 @@
-local success, WindUI = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true))()
-end)
+local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
+local func = loadstring(code)
+local WindUI = func()  -- 這行等於你 debug 裡的 func()
 
-if not success or WindUI == nil then
-    error("WindUI 載入失敗，請檢查網路或 executor 更新")
-end
+print("WindUI 載入後是否存在:", WindUI \~= nil)  -- 加這行確認
+if WindUI == nil then error("WindUI 還是 nil！") end
+
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1266,3 +1266,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Lun
 
 setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
+WindUI:Notify({
+    Title = "NovaHub 測試",
+    Content = "如果看到這個通知，WindUI 正常！現在按 Insert 開 UI",
+    Duration = 8,
+    Icon = "check"
+})
