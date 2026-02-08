@@ -1,15 +1,26 @@
 -- WindUI 載入（用你 debug 證實成功的寫法）
 local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
-local func = loadstring(code)
-local WindUI = func()
+print("[DEBUG] WindUI 原始碼長度:", #code)  -- 應該 \~246564
 
-print("[NovaHub Debug] WindUI 載入後是否存在:", WindUI \~= nil)
-if WindUI == nil then
-    error("WindUI 載入失敗！請檢查 Arceus Neo 更新或網路")
+local func, loadErr = loadstring(code)
+if not func then
+    error("[ERROR] loadstring 失敗: " .. (loadErr or "未知錯誤"))
 end
 
+local success, WindUI = pcall(func)
+if not success then
+    error("[ERROR] func() 執行失敗: " .. tostring(WindUI))
+end
 
+if WindUI == nil then
+    error("[ERROR] func() 回傳 nil！WindUI 載入失敗")
+end
 
+-- 強制 global，讓後面穩抓到
+_G.WindUI = WindUI
+
+print("[DEBUG] WindUI 載入成功！是否存在:", _G.WindUI ~= nil)
+print("[DEBUG] 是否有 CreateWindow 方法:", type(_G.WindUI.CreateWindow) == "function")
 
 
 local Players = game:GetService("Players")
