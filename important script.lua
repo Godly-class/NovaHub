@@ -1,4 +1,10 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true))()
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true))()
+end)
+
+if not success or WindUI == nil then
+    error("WindUI 載入失敗，請檢查網路或 executor 更新")
+end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
