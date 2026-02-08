@@ -1,9 +1,15 @@
+-- WindUI 載入（用你 debug 證實成功的寫法）
 local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
 local func = loadstring(code)
-local WindUI = func()  -- 這行等於你 debug 裡的 func()
+local WindUI = func()
 
-print("WindUI 載入後是否存在:", WindUI \~= nil)  -- 加這行確認
-if WindUI == nil then error("WindUI 還是 nil！") end
+print("[NovaHub Debug] WindUI 載入後是否存在:", WindUI \~= nil)
+if WindUI == nil then
+    error("WindUI 載入失敗！請檢查 Arceus Neo 更新或網路")
+end
+
+
+
 
 
 local Players = game:GetService("Players")
@@ -1266,9 +1272,4 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Lun
 
 setclipboard("https://discord.gg/4WSmx666DP")
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
-WindUI:Notify({
-    Title = "NovaHub 測試",
-    Content = "如果看到這個通知，WindUI 正常！現在按 Insert 開 UI",
-    Duration = 8,
-    Icon = "check"
-})
+print("[NovaHub Debug] 腳本執行完畢，UI 應該已建好，按 Insert 開啟")
