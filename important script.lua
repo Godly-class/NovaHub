@@ -2159,26 +2159,27 @@ RedvsBlueTab:Button({
             return
         end
 
-        -- 座標列表
+        -- 島嶼座標列表
         local positions = {
-            Vector3.new(186.11, 3.64, -2868.74),   -- 藍隊
-            Vector3.new(305.10, 3.75, -1806.30),   -- 中島
-            Vector3.new(-954.76, 3.75, -1756.31),  -- 左1島
-            Vector3.new(-2210.20, 0.50, -1729.77), -- 左2島
-            Vector3.new(1592.96, 3.75, -1732.18),  -- 右1島
-            Vector3.new(2621.80, 3.75, -1732.79),  -- 右2島
-            Vector3.new(261.37, 1.92, -662.47)     -- 紅隊
+            {name = "藍隊", cf = CFrame.new(186.11, 3.64, -2868.74)},
+            {name = "中島", cf = CFrame.new(305.10, 3.75, -1806.30)},
+            {name = "左1島", cf = CFrame.new(-954.76, 3.75, -1756.31)},
+            {name = "左2島", cf = CFrame.new(-2210.20, 0.50, -1729.77)},
+            {name = "右1島", cf = CFrame.new(1592.96, 3.75, -1732.18)},
+            {name = "右2島", cf = CFrame.new(2621.80, 3.75, -1732.79)},
+            {name = "紅隊", cf = CFrame.new(261.37, 1.92, -662.47)}
         }
 
         -- 執行循環傳送
         task.spawn(function()
-            for _, pos in ipairs(positions) do
+            for _, island in ipairs(positions) do
                 if localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart") then
-                    hrp.CFrame = CFrame.new(pos)
+                    hrp.CFrame = island.cf
+                    _G.WindUI:Notify("傳送到 " .. island.name)
                 end
-                task.wait(1) -- 每個點停 1 秒
+                task.wait(1) -- 每個島停 1 秒
             end
-            _G.WindUI:Notify("佔領完成")
+            _G.WindUI:Notify("一鍵佔領完成")
         end)
     end
 })
@@ -2193,7 +2194,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(186.11, 3.64, -2868.74))
+        hrp.CFrame = CFrame.new(186.11, 3.64, -2868.74)
         _G.WindUI:Notify("已傳送到 藍隊")
     end
 })
@@ -2208,7 +2209,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(305.10, 3.75, -1806.30))
+        hrp.CFrame = CFrame.new(305.10, 3.75, -1806.30)
         _G.WindUI:Notify("已傳送到 中島")
     end
 })
@@ -2223,7 +2224,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(-954.76, 3.75, -1756.31))
+        hrp.CFrame = CFrame.new(-954.76, 3.75, -1756.31)
         _G.WindUI:Notify("已傳送到 左1島")
     end
 })
@@ -2238,7 +2239,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(-2210.20, 0.50, -1729.77))
+        hrp.CFrame = CFrame.new(-2210.20, 0.50, -1729.77)
         _G.WindUI:Notify("已傳送到 左2島")
     end
 })
@@ -2253,7 +2254,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(1592.96, 3.75, -1732.18))
+        hrp.CFrame = CFrame.new(1592.96, 3.75, -1732.18)
         _G.WindUI:Notify("已傳送到 右1島")
     end
 })
@@ -2268,7 +2269,7 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(2621.80, 3.75, -1732.79))
+        hrp.CFrame = CFrame.new(2621.80, 3.75, -1732.79)
         _G.WindUI:Notify("已傳送到 右2島")
     end
 })
@@ -2283,12 +2284,10 @@ RedvsBlueTab:Button({
             return
         end
 
-        hrp.CFrame = CFrame.new(Vector3.new(261.37, 1.92, -662.47))
+        hrp.CFrame = CFrame.new(261.37, 1.92, -662.47)
         _G.WindUI:Notify("已傳送到 紅隊")
     end
 })
-
-
 -- SettingsTab 內容
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
