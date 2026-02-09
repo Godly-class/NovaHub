@@ -1,26 +1,9 @@
--- WindUI 載入（用你 debug 證實成功的寫法）
-local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
-print("[DEBUG] WindUI 原始碼長度:", #code)
-
-local func, loadErr = loadstring(code)
-if not func then
-    error("[ERROR] loadstring 失敗: " .. (loadErr or "未知錯誤"))
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true))()
+end)
+if not success or WindUI == nil then
+    error("WindUI 載入失敗")
 end
-
-local success, loadedWindUI = pcall(func)
-if not success then
-    error("[ERROR] func() 執行失敗: " .. tostring(loadedWindUI))
-end
-
-if loadedWindUI == nil then
-    error("[ERROR] func() 回傳 nil！WindUI 載入失敗")
-end
-
--- 強制設成 global
-_G.WindUI = loadedWindUI
-
-print("[DEBUG] _G.WindUI 是否存在:", _G.WindUI \~= nil)
-print("[DEBUG] CreateWindow 是否 function:", type(_G.WindUI.CreateWindow) == "function")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
