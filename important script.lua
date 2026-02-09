@@ -2113,7 +2113,7 @@ end
 
 -- 如果沒找到任何符合條件的玩家，就直接結束
 if not target or not target:FindFirstChild("HumanoidRootPart") then
-    -- 你可以這裡加提示，例如 print("沒找到目標") 或 UI 顯示文字
+    _G.WindUI:Notify("模式錯誤")
     return
 end
 
