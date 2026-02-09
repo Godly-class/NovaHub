@@ -2189,7 +2189,74 @@ RedvsBlueTab:Button({
             return
         end
         local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(-954.76, 3.75, -1756.31)
+RedvsBlueTab:Button({
+    Title = "一鍵佔領全部",
+    Callback = function()
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+
+        local islands = {
+            {name="藍隊", pos=Vector3.new(186.11, 6, -2868.74)},
+            {name="中島", pos=Vector3.new(305.10, 6, -1806.30)},
+            {name="左1島", pos=Vector3.new(-954.76, 6, -1756.31)},
+            {name="左2島", pos=Vector3.new(-2210.20, 3, -1729.77)},
+            {name="右1島", pos=Vector3.new(1592.96, 6, -1732.18)},
+            {name="右2島", pos=Vector3.new(2621.80, 6, -1732.79)},
+            {name="紅隊", pos=Vector3.new(261.37, 4, -662.47)}
+        }
+
+        task.spawn(function()
+            for _, island in ipairs(islands) do
+                humanoid:MoveTo(island.pos)
+                _G.WindUI:Notify("傳送到 "..island.name, "", 2)
+                humanoid.MoveToFinished:Wait()
+                task.wait(1)  -- 每個島停 1 秒
+            end
+            _G.WindUI:Notify("一鍵佔領完成", "", 3)
+        end)
+    end
+})
+
+-- 藍隊
+RedvsBlueTab:Button({
+    Title = "藍隊",
+    Callback = function()
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(186.11, 6, -2868.74))
+        humanoid.MoveToFinished:Wait()
+        _G.WindUI:Notify("已傳送到 藍隊", "", 3)
+    end
+})
+
+-- 中島
+RedvsBlueTab:Button({
+    Title = "中島",
+    Callback = function()
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(305.10, 6, -1806.30))
+        humanoid.MoveToFinished:Wait()
+        _G.WindUI:Notify("已傳送到 中島", "", 3)
+    end
+})
+
+-- 左1島
+RedvsBlueTab:Button({
+    Title = "左1島",
+    Callback = function()
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(-954.76, 6, -1756.31))
+        humanoid.MoveToFinished:Wait()
         _G.WindUI:Notify("已傳送到 左1島", "", 3)
     end
 })
@@ -2198,13 +2265,12 @@ RedvsBlueTab:Button({
 RedvsBlueTab:Button({
     Title = "左2島",
     Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(-2210.20, 0.50, -1729.77)
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(-2210.20, 3, -1729.77))
+        humanoid.MoveToFinished:Wait()
         _G.WindUI:Notify("已傳送到 左2島", "", 3)
     end
 })
@@ -2213,13 +2279,12 @@ RedvsBlueTab:Button({
 RedvsBlueTab:Button({
     Title = "右1島",
     Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(1592.96, 3.75, -1732.18)
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(1592.96, 6, -1732.18))
+        humanoid.MoveToFinished:Wait()
         _G.WindUI:Notify("已傳送到 右1島", "", 3)
     end
 })
@@ -2228,61 +2293,27 @@ RedvsBlueTab:Button({
 RedvsBlueTab:Button({
     Title = "右2島",
     Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(2621.80, 3.75, -1732.79)
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(2621.80, 6, -1732.79))
+        humanoid.MoveToFinished:Wait()
         _G.WindUI:Notify("已傳送到 右2島", "", 3)
     end
 })
-
 
 -- 紅隊
 RedvsBlueTab:Button({
     Title = "紅隊",
     Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(261.37, 1.92, -662.47)
+        local char = localplayer.Character
+        if not char then return end
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local humanoid = char:WaitForChild("Humanoid")
+        humanoid:MoveTo(Vector3.new(261.37, 4, -662.47))
+        humanoid.MoveToFinished:Wait()
         _G.WindUI:Notify("已傳送到 紅隊", "", 3)
-    end
-})
-
-RedvsBlueTab:Button({
-    Title = "一鍵佔領全部",
-    Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-
-        local islands = {
-            {name="藍隊", cf=CFrame.new(186.11, 3.64, -2868.74)},
-            {name="中島", cf=CFrame.new(305.10, 3.75, -1806.30)},
-            {name="左1島", cf=CFrame.new(-954.76, 3.75, -1756.31)},
-            {name="左2島", cf=CFrame.new(-2210.20, 0.50, -1729.77)},
-            {name="右1島", cf=CFrame.new(1592.96, 3.75, -1732.18)},
-            {name="右2島", cf=CFrame.new(2621.80, 3.75, -1732.79)},
-            {name="紅隊", cf=CFrame.new(261.37, 1.92, -662.47)}
-        }
-
-        task.spawn(function()
-            for _, island in ipairs(islands) do
-                hrp.CFrame = island.cf
-                _G.WindUI:Notify("傳送到 "..island.name, "", 2)
-                task.wait(1)
-            end
-            _G.WindUI:Notify("一鍵佔領完成", "", 3)
-        end)
     end
 })
 
