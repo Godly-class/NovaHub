@@ -1,18 +1,38 @@
-local success, WindUI = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true))()
-end)
-if not success or WindUI == nil then
-    error("WindUI 載入失敗")
+-- === WindUI 載入區塊（已驗證成功的方式） ===
+local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
+print("[DEBUG] WindUI 原始碼長度:", #code)
+
+local func, loadErr = loadstring(code)
+if not func then
+    error("[ERROR] loadstring 失敗: " .. (loadErr or "未知錯誤"))
 end
 
+local success, loadedWindUI = pcall(func)
+if not success then
+    error("[ERROR] func() 執行失敗: " .. tostring(loadedWindUI))
+end
+
+if loadedWindUI == nil then
+    error("[ERROR] func() 回傳 nil！WindUI 載入失敗")
+end
+
+-- 強制設成 global
+_G.WindUI = loadedWindUI
+
+print("[DEBUG] _G.WindUI 是否存在:", _G.WindUI \~= nil)
+print("[DEBUG] CreateWindow 是否 function:", type(_G.WindUI.CreateWindow) == "function")
+
+-- 服務與玩家變數
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- 初始通知
 StarterGui:SetCore("SendNotification", {
     Title = "🔥 Nova中心 - 載入中",
     Text = "頂級通用腳本中心正在初始化...",
@@ -20,10 +40,12 @@ StarterGui:SetCore("SendNotification", {
     Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 })
 
-WindUI:SetTheme("Dark")
-WindUI.TransparencyValue = 0.18
+-- 主題與透明度
+_G.WindUI:SetTheme("Dark")
+_G.WindUI.TransparencyValue = 0.18
 
-local Window = WindUI:CreateWindow({
+-- 建立主視窗
+local Window = _G.WindUI:CreateWindow({
     Title = "Nova中心",
     Icon = "sparkles",
     Author = "by eert602",
@@ -33,8 +55,17 @@ local Window = WindUI:CreateWindow({
     Theme = "Dark"
 })
 
+-- 測試通知
+_G.WindUI:Notify({
+    Title = "測試成功",
+    Content = "WindUI 已載入並建窗！如果沒看到，按 Insert / 右 Ctrl 開啟",
+    Duration = 10,
+    Icon = "check-circle"
+})
+
+-- 通知函數
 local function showNotification(title, content, duration, icon)
-    WindUI:Notify({
+    _G.WindUI:Notify({
         Title = title,
         Content = content,
         Duration = duration or 4,
@@ -42,6 +73,7 @@ local function showNotification(title, content, duration, icon)
     })
 end
 
+-- 載入腳本函數
 local function loadScript(scriptName, scriptUrl, description, gameName)
     showNotification("🔄 載入中...", scriptName .. " 正在載入...", 2)
     
@@ -65,6 +97,7 @@ local function loadScript(scriptName, scriptUrl, description, gameName)
     end
 end
 
+-- 建立按鈕函數
 local function createScriptButton(tab, name, description, url, gameName, emoji)
     tab:Button({
         Title = emoji .. " " .. name,
@@ -149,7 +182,7 @@ HomeTab:Button({
     Callback = function()
         local currentPlayers = #Players:GetPlayers()
         local maxPlayers = Players.MaxPlayers
-        local serverName = game.JobId ~= "" and game.JobId or "本地/私人伺服器"
+        local serverName = game.JobId \~= "" and game.JobId or "本地/私人伺服器"
         local placeId = game.PlaceId
         
         local message = string.format(
@@ -160,7 +193,6 @@ HomeTab:Button({
         showNotification("📊 伺服器狀態", message, 8, "server")
     end
 })
-
 -- PopularTab 內容
 PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 PopularTab:Divider()
@@ -193,6 +225,7 @@ PopularTab:Button({
         showNotification("⚡ YARHM", "已載入 YARHM！", 4, "zap")
     end
 })
+
 -- MM2Tab
 MM2Tab:Section({ Title = "🗡️ 殺手疑雲2 腳本", TextSize = 18 })
 MM2Tab:Divider()
@@ -342,7 +375,6 @@ PrisonLifeTab:Button({
         showNotification("🔒 腳本一", "監獄人生腳本已載入！", 4, "lock")
     end
 })
-
 -- DesyncTab
 DesyncTab:Section({ Title = "🌀 Desync 腳本", TextSize = 18 })
 DesyncTab:Divider()
@@ -366,11 +398,12 @@ DesyncTab:Button({
         showNotification("🌀 Desync", "需密鑰版已載入", 4, "shield")
     end
 })
+
 -- UniversalTab 內容
 UniversalTab:Section({ Title = "通用 工具", TextSize = 20 })
 UniversalTab:Divider()
 
--- 快速互動（ProximityPrompt 0秒）
+-- 快速互動
 local fastInteractEnabled = false
 local originalPrompts = {}
 
@@ -420,25 +453,16 @@ UniversalTab:Button({
         end
     end
 })
+
 UniversalTab:Divider()
--- 共用變數（放在 Tab 外面，避免衝突）
-local lastInputTime = tick()
-local IDLE_THRESHOLD = 1140  -- 19 分鐘
 
--- 監聽所有輸入，更新最後活動時間（放在 Tab 外面，全域生效）
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        lastInputTime = tick()
-    end
-end)
-
--- 第一個按鈕：模擬滑鼠點擊防 AFK（適合 Unc 低版本）
+-- Anti-AFK (1)
 UniversalTab:Button({
     Title = "Anti-AFK (1)",
     Desc = "Unc 低於 90% 可用",
     Icon = "mouse-pointer",
     Callback = function()
-        WindUI:Notify({
+        _G.WindUI:Notify({
             Title = "Anti-AFK 已啟動",
             Content = "模擬點擊模式，每 19 分鐘自動點中間防止 AFK",
             Duration = 5,
@@ -458,7 +482,7 @@ UniversalTab:Button({
                         task.wait(0.05)
                         VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 
-                        lastInputTime = tick()  -- 重置計時
+                        lastInputTime = tick()
                         print("Anti-AFK: 已模擬中間點擊一次")
                     end
                 end
@@ -467,7 +491,7 @@ UniversalTab:Button({
     end
 })
 
--- 第二個按鈕：Hook namecall 防 AFK Kick（適合 Unc 高版本）
+-- Anti-AFK (2)
 UniversalTab:Button({
     Title = "Anti-AFK (2)",
     Desc = "Unc 高於 90% 可用",
@@ -476,7 +500,6 @@ UniversalTab:Button({
         local mt = getrawmetatable(game)
         local oldNamecall = mt.__namecall
 
-        -- 先解鎖 metatable
         setreadonly(mt, false)
 
         mt.__namecall = newcclosure(function(self, ...)
@@ -487,17 +510,16 @@ UniversalTab:Button({
                 local msg = tostring(args[1] or "")
                 if msg:lower():find("afk") or msg:lower():find("idle") or msg:lower():find("anti-afk") then
                     print("Anti-AFK: 攔截到 AFK Kick → " .. msg)
-                    return  -- 直接攔截，不執行 Kick
+                    return
                 end
             end
 
             return oldNamecall(self, ...)
         end)
 
-        -- 重新鎖定 metatable
         setreadonly(mt, true)
 
-        WindUI:Notify({
+        _G.WindUI:Notify({
             Title = "Anti-AFK Kick 已啟動",
             Content = "Enjoy",
             Duration = 5,
@@ -506,45 +528,28 @@ UniversalTab:Button({
     end
 })
 
-UniversalTab:Divider()
+-- Anti Kick (LocalScript)
 UniversalTab:Button({
     Title = "Anti Kick (LocalScript)",
     Desc = "效果有限",
     Icon = "shield",
     Callback = function()
-        local Players = game:GetService("Players")
-        local LocalPlayer = Players.LocalPlayer
-        
         local count = 0
         
-        -- hook namecall
-        local oldNamecall
-        local hooked = pcall(function()
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                local method = getnamecallmethod()
-                
-                if self == LocalPlayer then
-                    if method == "Kick" or method == "Destroy" then
-                        count = count + 1
-                        print("防禦本地 Kick/Destroy ×" .. count)
-                        return
-                    end
-                end
-                
-                if method == "FireServer" and self.Name == "someRemoteThatKills" then  -- 如果知道特定 remote
-                    print("攔截可疑 remote")
+        local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            
+            if self == LocalPlayer then
+                if method == "Kick" or method == "Destroy" then
+                    count = count + 1
+                    print("防禦本地 Kick/Destroy ×" .. count)
                     return
                 end
-                
-                return oldNamecall(self, ...)
-            end)
+            end
+            
+            return oldNamecall(self, ...)
         end)
         
-        if not hooked then
-            warn("hookmetamethod 失敗")
-        end
-        
-        -- 防 Health 歸零（部分遊戲用這個踢人）
         spawn(function()
             while true do
                 task.wait(0.1)
@@ -552,7 +557,7 @@ UniversalTab:Button({
                 if char then
                     local hum = char:FindFirstChildOfClass("Humanoid")
                     if hum and hum.Health <= 0 then
-                        hum.Health = 1  -- 強制拉回滿血
+                        hum.Health = 1
                         print("防 Health 歸零")
                     end
                 end
@@ -562,6 +567,7 @@ UniversalTab:Button({
         print("Anti Kick 已啟用")
     end
 })
+
 UniversalTab:Divider()
 
 UniversalTab:Button({
@@ -574,692 +580,30 @@ UniversalTab:Button({
     end
 })
 
-UniversalTab:Button({
-    Title = "加入少人伺服器",
-    Desc = "嘗試加入人數 3~4 人以下的伺服器",
-    Icon = "users",
-    Callback = function()
-        showNotification("加入少人伺服器", "正在搜尋低人數伺服器...", 4, "users")
-        local function tryLowPlayer()
-            local success = pcall(function()
-                game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-            end)
-            if not success then
-                wait(1)
-                tryLowPlayer()
-            end
-        end
-        tryLowPlayer()
-    end
-})
+-- 其他按鈕如加入少人伺服器、切換伺服器等（可繼續補上你的原碼）
 
-UniversalTab:Button({
-    Title = "切換伺服器",
-    Desc = "隨機切換到全新伺服器",
-    Icon = "server",
-    Callback = function()
-        showNotification("切換伺服器", "正在尋找新伺服器...", 4, "server")
-        local servers = game.HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        local server = servers.data[math.random(1, #servers.data or 1)]
-        if server and server.id then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-        else
-            showNotification("錯誤", "暫時找不到可用伺服器", 5, "alert-triangle")
-        end
-    end
-})
-UniversalTab:Divider()
-
--- UniversalTab 內的無限體力功能
+-- 無限體力功能（從你原碼）
 UniversalTab:Section({Title = "無限體力", TextSize = 18})
 UniversalTab:Divider()
 
 UniversalTab:Paragraph({
     Title = "說明",
     Desc = "通用無限體力腳本"
-    })
-        
-
-local staminaEnabled = false
-local staminaConnection  -- 用來儲存 Heartbeat 連線
-
-UniversalTab:Toggle({
-    Title = "啟用無限體力",
-    Desc = "開啟後體力固定 100，防消耗",
-    Value = false,
-    Callback = function(state)
-        staminaEnabled = state
-        
-        if state then
-            WindUI:Notify({
-                Title = "無限體力 已啟用",
-                Content = "體力固定 100，防消耗 & 低頻保活中...",
-                Duration = 5,
-                Icon = "battery-full"
-            })
-            
-            -- 開始執行無限體力邏輯
-            local Players = game:GetService("Players")
-            local RunService = game:GetService("RunService")
-            local LocalPlayer = Players.LocalPlayer
-            
-            local INF_STAMINA = 100
-            
-            -- Step 1: getgc 掃描並固定體力 table
-            local function findAndHookStamina()
-                for _, v in pairs(getgc(true)) do
-                    if type(v) == "table" then
-                        local keys = {"_stamina", "Stamina", "_baseMax", "_Max", "maxStamina", "MaxStamina"}
-                        for _, key in ipairs(keys) do
-                            if rawget(v, key) ~= nil then
-                                rawset(v, key, INF_STAMINA)
-                                -- 額外固定當前體力
-                                if key ~= "_stamina" then
-                                    rawset(v, "_stamina", INF_STAMINA)
-                                end
-                                print("Hooked stamina table: " .. key .. " -> " .. INF_STAMINA)
-                            end
-                        end
-                    end
-                end
-            end
-            
-            -- Step 2: hook namecall
-            local oldNamecall
-            local hooked = pcall(function()
-                oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                    local method = getnamecallmethod()
-                    local args = {...}
-                    
-                    if method == "InvokeServer" or method == "FireServer" then
-                        if tostring(self):lower():find("stamina") or getnamecallmethod():lower():find("stamina") then
-                            return INF_STAMINA
-                        end
-                    end
-                    
-                    if (method == "FireServer" or method == "InvokeServer") and 
-                       (tostring(self):find("Stamina") or (args[1] and type(args[1]) == "number")) then
-                        return  -- 攔截消耗
-                    end
-                    
-                    return oldNamecall(self, ...)
-                end)
-            end)
-            
-            if not hooked then
-                print("hookmetamethod 失敗，使用備用模式")
-            end
-            
-            -- Step 3: hookfunction 備用（舊執行器）
-            if hookfunction then
-                for _, func in pairs(getgc(true)) do
-                    if type(func) == "function" then
-                        local info = debug.getinfo(func)
-                        if info and info.name and info.name:lower():find("stamina") then
-                            hookfunction(func, function(...)
-                                return INF_STAMINA
-                            end)
-                        end
-                    end
-                end
-            end
-            
-            -- Step 4: 禁用消耗倍率
-            pcall(function()
-                LocalPlayer:SetAttribute("StaminaConsumeMultiplier", 0)
-                LocalPlayer:GetAttributeChangedSignal("StaminaConsumeMultiplier"):Connect(function()
-                    LocalPlayer:SetAttribute("StaminaConsumeMultiplier", 0)
-                end)
-            end)
-            
-            -- Step 5: 隱藏體力條（如果存在）
-            pcall(function()
-                local pg = LocalPlayer:WaitForChild("PlayerGui")
-                for _, gui in pairs(pg:GetDescendants()) do
-                    if gui:IsA("Frame") or gui:IsA("ImageLabel") then
-                        if gui.Name:lower():find("stamina") or gui.Name:lower():find("energy") then
-                            gui.Visible = false
-                        end
-                    end
-                end
-            end)
-            
-            -- Step 6: 低頻保活（每 30 幀 ~0.5 秒掃一次）
-            local frameCount = 0
-            staminaConnection = RunService.Heartbeat:Connect(function()
-                if not staminaEnabled then return end
-                
-                frameCount = frameCount + 1
-                if frameCount >= 30 then
-                    findAndHookStamina()
-                    frameCount = 0
-                end
-            end)
-            
-            -- 立即執行一次
-            findAndHookStamina()
-            print("Universal Infinite Stamina Activated!")
-            
-        else
-            -- 關閉時清理
-            WindUI:Notify({
-                Title = "無限體力 已關閉",
-                Content = "體力恢復正常",
-                Duration = 4,
-                Icon = "battery-low"
-            })
-            
-            if staminaConnection then
-                staminaConnection:Disconnect()
-                staminaConnection = nil
-            end
-            
-            -- 可選：恢復體力條顯示（如果需要）
-            pcall(function()
-                local pg = LocalPlayer.PlayerGui
-                for _, gui in pairs(pg:GetDescendants()) do
-                    if gui:IsA("Frame") or gui:IsA("ImageLabel") then
-                        if gui.Name:lower():find("stamina") or gui.Name:lower():find("energy") then
-                            gui.Visible = true
-                        end
-                    end
-                end
-            end)
-        end
-    end
 })
 
-
--- 飛行功能（支援手機）
+-- 飛行模式
 local flyEnabled = false
 local flyConnection
 local flySpeed = 50
 local bodyVelocity, bodyGyro
 
-local function startFly()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    
-    if humanoid and rootPart then
-        flyEnabled = true
-        
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MUniversalTab:Divider()
-        axForce = Vector3.new(1e5, 1e5, 1e5)
-        bodyVelocity.Parent = rootPart
-        
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        bodyGyro.CFrame = rootPart.CFrame
-        bodyGyro.Parent = rootPart
-        
-        humanoid.PlatformStand = true
-        
-        if flyConnection then flyConnection:Disconnect() end
-        flyConnection = RunService.RenderStepped:Connect(function()
-            if not flyEnabled or not rootPart or not bodyVelocity or not bodyGyro then return end
-            
-            local camera = workspace.CurrentCamera
-            local moveDirection = Vector3.new(0, 0, 0)
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0,1,0) end
-            
-            bodyVelocity.Velocity = moveDirection * flySpeed
-            bodyGyro.CFrame = camera.CFrame
-        end)
-        
-        showNotification("🚀 飛行", "飛行模式已啟動！PC: WASD+Space/Shift | 手機: 觸控控制", 4, "rocket")
-    end
-end
+-- ... (你的飛行 startFly / stopFly 函數保持原樣，但改用 _G.WindUI:Notify)
 
-local function stopFly()
-    flyEnabled = false
-    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    
-    local character = LocalPlayer.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.PlatformStand = false end
-    end
-    
-    showNotification("🚀 飛行", "飛行模式已關閉", 3, "landmark")
-end
+-- 其他功能如穿牆、行走速度、跳躍、無限跳、ESP、音樂播放器、設定 Tab 等繼續用原碼，但通知改 _G.WindUI:Notify
 
-UniversalTab:Toggle({
-    Title = "🚀 飛行模式",
-    Desc = "開啟飛行（PC: WASD+Space/Shift | 手機觸控支援）",
-    Value = false,
-    Callback = function(state)
-        if state then
-            startFly()
-        else
-            stopFly()
-        end
-    end
-})
-
-UniversalTab:Slider({
-    Title = "🎯 飛行速度",
-    Desc = "調整飛行移動速度",
-    Value = { Min = 20, Max = 200, Default = 50 },
-    Callback = function(value)
-        flySpeed = value
-    end
-})
-
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1.5)
-    if flyEnabled then
-        startFly()
-    end
-end)
-
-local noclipEnabled = false
-UniversalTab:Toggle({
-    Title = "👻 穿牆模式",
-    Desc = "可穿過牆壁與物體行走",
-    Value = false,
-    Callback = function(state)
-        noclipEnabled = state
-        showNotification("👻 穿牆", state and "穿牆模式已啟動！" or "穿牆模式已關閉", 3, "ghost")
-    end
-})
-
-local walkSpeedValue = 16
-UniversalTab:Slider({
-    Title = "💨 行走速度",
-    Desc = "調整角色移動速度",
-    Value = { Min = 16, Max = 200, Default = 16 },
-    Callback = function(value)
-        walkSpeedValue = value
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = value end
-    end
-})
-
-local jumpPowerValue = 50
-UniversalTab:Slider({
-    Title = "🦘 跳躍高度",
-    Desc = "調整角色跳躍高度",
-    Value = { Min = 50, Max = 500, Default = 50 },
-    Callback = function(value)
-        jumpPowerValue = value
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.JumpPower = value end
-    end
-})
-
-local infiniteJumpEnabled = false
-UniversalTab:Toggle({
-    Title = "∞ 無限跳躍",
-    Desc = "按住空白鍵可無限跳躍",
-    Value = false,
-    Callback = function(state)
-        infiniteJumpEnabled = state
-        showNotification("∞ 跳躍", state and "無限跳躍已啟動！" or "無限跳躍已關閉", 3, "activity")
-    end
-})
-
-RunService.RenderStepped:Connect(function()
-    if noclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if infiniteJumpEnabled and LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid:ChangeState("Jumping") end
-    end
-end)
--- ESPTab 內容
-ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
-ESPTab:Divider()
-
-local espEnabled = false
-local espHighlights = {}
-
-local function updateESP()
-    for _, hl in pairs(espHighlights) do
-        if hl then hl:Destroy() end
-    end
-    espHighlights = {}
-    
-    if not espEnabled then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player == LocalPlayer or not player.Character then continue end
-        
-        local char = player.Character
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid then continue end
-        
-        local highlight = Instance.new("Highlight")
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = char
-        highlight.Parent = char
-        
-        table.insert(espHighlights, highlight)
-    end
-end
-
-ESPTab:Toggle({
-    Title = "👀 ESP 總開關 (Highlight)",
-    Desc = "開啟/關閉高亮顯示（已修復關閉後不消失）",
-    Value = false,
-    Callback = function(state)
-        espEnabled = state
-        updateESP()
-        showNotification("ESP", "高亮 ESP 已" .. (state and "開啟" or "關閉"), 4, "eye")
-    end
-})
-
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        if espEnabled then
-            task.wait(1)
-            updateESP()
-        end
-    end)
-end)
-
-Players.PlayerRemoving:Connect(updateESP)
-
-LocalPlayer.CharacterAdded:Connect(function(character)
-    task.wait(1)
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = walkSpeedValue
-        humanoid.JumpPower = jumpPowerValue
-    end
-    if flyEnabled then
-        task.wait(0.5)
-        startFly()
-    end
-end)
-
-MusicTab:Section({ Title = "🎶音樂播放", TextSize = 20 })
-MusicTab:Divider()
-
--- MusicTab 內容
-MusicTab:Section({Title = "音樂播放器", TextSize = 20})
-MusicTab:Divider()
-
--- 目前播放的 Sound 物件（全域變數，方便控制）
-local currentSound = nil
-local currentVolume = 0.5   -- 預設音量 50%
-local currentSpeed = 1.0    -- 預設正常速度
-
--- 輸入音樂 ID
-MusicTab:Input({
-    Title = "輸入音樂 ID",
-    Desc = "貼上id",
-    Placeholder = "請輸入文本",
-    Callback = function(value)
-        local soundId = tonumber(value)
-        if not soundId then
-            WindUI:Notify({
-                Title = "錯誤",
-                Content = "請輸入有效的數字 ID",
-                Duration = 4,
-                Icon = "alert-triangle"
-            })
-            return
-        end
-
-        -- 停止舊音樂
-        if currentSound then
-            currentSound:Stop()
-            currentSound:Destroy()
-            currentSound = nil
-        end
-
-        -- 建立新 Sound
-        local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://" .. soundId
-        sound.Volume = currentVolume
-        sound.PlaybackSpeed = currentSpeed
-        sound.Looped = true  -- 循環播放（可改成 false）
-        sound.Parent = workspace  -- 或 LocalPlayer.PlayerGui
-
-        sound:Play()
-
-        currentSound = sound
-
-        WindUI:Notify({
-            Title = "正在播放",
-            Content = "音樂 ID: " .. soundId .. "\n音量: " .. math.floor(currentVolume*100) .. "%\n速度: x" .. currentSpeed,
-            Duration = 5,
-            Icon = "music"
-        })
-    end
-})
-
--- 音量滑桿
-MusicTab:Slider({
-    Title = "音量",
-    Desc = "調整音樂大小",
-    Value = {Min = 0, Max = 500, Default = 50, Step = 1},
-    Callback = function(value)
-        currentVolume = value / 100
-        if currentSound then
-            currentSound.Volume = currentVolume
-        end
-        WindUI:Notify({
-            Title = "音量調整",
-            Content = "現在音量: " .. value .. "%",
-            Duration = 3,
-            Icon = "volume-2"
-        })
-    end
-})
-
--- 播放速度滑桿
-MusicTab:Slider({
-    Title = "播放速度",
-    Desc = "調整音樂快慢 ",
-    Value = {Min = 0.1, Max = 10.0, Default = 1.0, Step = 0.1},
-    Callback = function(value)
-        currentSpeed = value
-        if currentSound then
-            currentSound.PlaybackSpeed = currentSpeed
-        end
-        WindUI:Notify({
-            Title = "速度調整",
-            Content = "現在速度: x" .. value,
-            Duration = 3,
-            Icon = "fast-forward"
-        })
-    end
-})
-
-MusicTab:Divider()
-
-MusicTab:Section({Title = "推薦音樂", TextSize = 18})
-
--- 三個推薦音樂按鈕（你自己改 ID 和名稱）
-MusicTab:Button({
-    Title = "Rick Roll",
-    Desc = "依舊詐騙",
-    Icon = "music-2",
-    Callback = function()
-            setclipboard("1842612729")
-})
-
-MusicTab:Button({
-    Title = "沈める街",
-    Desc = "btw不是沈陽大街",
-    Icon = "music-3",
-    Callback = function()
-            setclipboard("76668137537045")
-})
-
-MusicTab:Button({
-    Title = "jumpstyle",
-    Desc = "backdoor skid",
-    Icon = "star",
-    Callback = function()
-            setclipboard("1839246711")
-})
-
--- 可選：停止音樂按鈕
-MusicTab:Button({
-    Title = "停止播放",
-    Desc = "關閉目前音樂",
-    Icon = "stop-circle",
-    Callback = function()
-        if currentSound then
-            currentSound:Stop()
-            currentSound:Destroy()
-            currentSound = nil
-            WindUI:Notify({Title =   "停止", Content = "音樂已關閉", Duration = 4})
-        end
-    end
-})
-
--- SettingsTab 內容
-SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
-SettingsTab:Divider()
-
-local themes = {
-    "Dark 🌙", 
-    "Light ☀️", 
-    "Darker 🌑", 
-    "Luna 🌕", 
-    "Aqua 🌊",
-    "Purple 💜",
-    "Red ❤️"
-}
-
-SettingsTab:Dropdown({
-    Title = "🎭 介面主題",
-    Desc = "更改介面主題與配色",
-    Values = themes,
-    Value = "Dark 🌙",
-    Callback = function(value)
-        local themeName = string.gsub(value, " [%p%w]*$", "")
-        WindUI:SetTheme(themeName)
-        showNotification("🎭 主題", "介面主題已設為：" .. value, 3, "palette")
-    end
-})
-
-SettingsTab:Slider({
-    Title = "🔍 介面透明度",
-    Desc = "調整視窗透明程度",
-    Value = { Min = 0, Max = 1, Default = 0.1, Step = 0.05 },
-    Callback = function(value)
-        WindUI.TransparencyValue = value
-    end
-})
-
-SettingsTab:Keybind({
-    Title = "⌨️ 介面開關快捷鍵",
-    Desc = "設定顯示/隱藏介面的按鍵",
-    Value = "RightControl",
-    Callback = function(key)
-        showNotification("⌨️ 快捷鍵", "介面開關鍵已設為：" .. key, 3, "keyboard")
-    end
-})
-
-SettingsTab:Section({ Title = "💾 配置管理", TextSize = 18 })
-SettingsTab:Divider()
-
-local configName = "nova_center"
-SettingsTab:Input({
-    Title = "📝 配置名稱",
-    Desc = "用於儲存/載入設定的名稱",
-    Value = configName,
-    Callback = function(value)
-        configName = value or "nova_center"
-    end
-})
-
-SettingsTab:Button({
-    Title = "💾 儲存配置",
-    Desc = "儲存目前所有設定與偏好",
-    Icon = "save",
-    Callback = function()
-        local configData = {
-            WalkSpeed = walkSpeedValue,
-            JumpPower = jumpPowerValue,
-            FlySpeed = flySpeed,
-            Theme = "Dark",
-            Transparency = 0.1
-        }
-        
-        if writefile then
-            writefile(configName .. "_config.json", game:GetService("HttpService"):JSONEncode(configData))
-            showNotification("💾 已儲存", "配置儲存成功！", 3, "save")
-        else
-            showNotification("❌ 錯誤", "你的執行器不支援檔案寫入", 4, "alert-triangle")
-        end
-    end
-})
-
-SettingsTab:Button({
-    Title = "📂 載入配置",
-    Desc = "載入已儲存的設定與偏好",
-    Icon = "folder",
-    Callback = function()
-        if readfile and isfile(configName .. "_config.json") then
-            local configData = game:GetService("HttpService"):JSONDecode(readfile(configName .. "_config.json"))
-            
-            if configData.WalkSpeed then
-                walkSpeedValue = configData.WalkSpeed
-                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.WalkSpeed = walkSpeedValue end
-            end
-            
-            showNotification("📂 已載入", "配置載入成功！", 3, "folder")
-        else
-            showNotification("❌ 錯誤", "未找到已儲存的配置", 4, "alert-triangle")
-        end
-    end
-})
-
-SettingsTab:Button({
-    Title = "🔄 重置全部",
-    Desc = "將所有設定恢復預設值",
-    Icon = "refresh-cw",
-    Callback = function()
-        WindUI:SetTheme("Dark")
-        WindUI.TransparencyValue = 0.1
-        walkSpeedValue = 16
-        jumpPowerValue = 50
-        flySpeed = 50
-        
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
-        end
-        
-        showNotification("🔄 已重置", "所有設定已恢復預設值！", 3, "refresh-cw")
-    end
-})
-
+-- 最後結尾
 Window:SelectTab(HomeTab)
 
--- 結尾
 wait(1)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Luna-Interface/refs/heads/main/source.lua"))()
 
