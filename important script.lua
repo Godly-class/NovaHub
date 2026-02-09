@@ -2077,7 +2077,7 @@ RedvsBlueTab:Button({
 
 })
 RedvsBlueTab:Button({
-        Tilte = "傳送至國王身後"
+        Tilte = "傳送至國王身後",
         callback = function()
             -- 假設這段 code 會放在你的 UI 按鈕的 .MouseButton1Click:Connect(function() 裡面
 
