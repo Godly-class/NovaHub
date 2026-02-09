@@ -2035,7 +2035,7 @@ RedvsBlueTab:Section({ Title = "功能列表", TextSize = 20 })
 createScriptButton(RedvsBlueTab, "自動換彈", "自動換彈+Ui顯示", "https://pastebin.com/raw/7Dp7L3s4", "僅限此遊戲", "✈️")
 RedvsBlueTab:Button({
 
-    Tilte = "傳送至旗幟點 (搶奪模式)",
+    Title = "傳送至旗幟點 (搶奪模式)",
 
     Callback = function()
 
