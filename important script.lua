@@ -30,7 +30,7 @@ end
 
 _G.WindUI = loadedWindUI
 
-print("[DEBUG] _G.WindUI 是否存在:", _G.WindUI \~= nil)
+print("[DEBUG] _G.WindUI 是否存在:", _G.WindUI ~= nil)
 
 print("[DEBUG] CreateWindow 是否 function:", type(_G.WindUI.CreateWindow) == "function")
 
