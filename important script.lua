@@ -2035,7 +2035,7 @@ RedvsBlueTab:Section({ Title = "功能列表", TextSize = 20 })
 createScriptButton(RedvsBlueTab, "自動換彈", "自動換彈+Ui顯示", "https://pastebin.com/raw/7Dp7L3s4", "僅限此遊戲", "✈️")
 RedvsBlueTab:Button({
 
-    Name = "傳送至旗幟點 (搶奪模式)",
+    Tilte = "傳送至旗幟點 (搶奪模式)",
 
     Callback = function()
 
@@ -2076,6 +2076,71 @@ RedvsBlueTab:Button({
     end
 
 })
+RedvsBlueTab:Button({
+        Tilte = "傳送至國王身後"
+        callback= function()
+            -- 假設這段 code 會放在你的 UI 按鈕的 .MouseButton1Click:Connect(function() 裡面
+
+local rs = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- 找一個符合條件的目標（這裡用 BillboardGui Enabled == true 當例子）
+-- 你可以把這段條件判斷改成你真正想用的（距離、武器狀態、特定名字...）
+local target = nil
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p == localplayer then continue end
+    if not p.Character then continue end
+    
+    -- 隊伍過濾（如果遊戲有隊伍系統，沒有的話可以註解或刪掉）
+    if p.Team and localplayer.Team and p.Team == localplayer.Team then continue end
+    
+    local char = p.Character
+    local found = false
+    
+    -- 掃描這個玩家的所有後代，找 BillboardGui
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BillboardGui") and obj.Enabled == true then
+            target = char
+            found = true
+            break
+        end
+    end
+    
+    if found then break end  -- 找到第一個就停（只鎖一個）
+end
+
+-- 如果沒找到任何符合條件的玩家，就直接結束
+if not target or not target:FindFirstChild("HumanoidRootPart") then
+    -- 你可以這裡加提示，例如 print("沒找到目標") 或 UI 顯示文字
+    return
+end
+
+-- 記錄自己現在的位置
+local myHRP = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
+if not myHRP then return end
+
+local originalCFrame = myHRP.CFrame
+
+-- 計算目標正後方位置
+local targetHRP = target.HumanoidRootPart
+local behindCFrame = targetHRP.CFrame * CFrame.new(0, 0, 4)          -- 距離 4，可自行調整
+local lookAtCFrame = CFrame.lookAt(behindCFrame.Position, targetHRP.Position)
+
+-- 傳送過去
+myHRP.CFrame = lookAtCFrame
+
+-- 3秒後傳回原位
+task.delay(3, function()
+    if localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart") then
+        localplayer.Character.HumanoidRootPart.CFrame = originalCFrame
+    end
+end)
+})
+
+-- 可選：這裡可以加通知、音效、或 UI 反饋
+-- print("已鎖定背後 3 秒")
 -- SettingsTab 內容
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
