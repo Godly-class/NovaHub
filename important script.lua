@@ -2149,6 +2149,146 @@ RedvsBlueTab:Button({
 
 -- 可選：這裡可以加通知、音效、或 UI 反饋
 -- print("已鎖定背後 3 秒")
+RedvsBlueTab:Button({
+    Title = "一鍵佔領全部",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        -- 座標列表
+        local positions = {
+            Vector3.new(186.11, 3.64, -2868.74),   -- 藍隊
+            Vector3.new(305.10, 3.75, -1806.30),   -- 中島
+            Vector3.new(-954.76, 3.75, -1756.31),  -- 左1島
+            Vector3.new(-2210.20, 0.50, -1729.77), -- 左2島
+            Vector3.new(1592.96, 3.75, -1732.18),  -- 右1島
+            Vector3.new(2621.80, 3.75, -1732.79),  -- 右2島
+            Vector3.new(261.37, 1.92, -662.47)     -- 紅隊
+        }
+
+        -- 執行循環傳送
+        task.spawn(function()
+            for _, pos in ipairs(positions) do
+                if localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart") then
+                    hrp.CFrame = CFrame.new(pos)
+                end
+                task.wait(1) -- 每個點停 1 秒
+            end
+            _G.WindUI:Notify("佔領完成")
+        end)
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "藍隊",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(186.11, 3.64, -2868.74))
+        _G.WindUI:Notify("已傳送到 藍隊")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "中島",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(305.10, 3.75, -1806.30))
+        _G.WindUI:Notify("已傳送到 中島")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "左1島",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(-954.76, 3.75, -1756.31))
+        _G.WindUI:Notify("已傳送到 左1島")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "左2島",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(-2210.20, 0.50, -1729.77))
+        _G.WindUI:Notify("已傳送到 左2島")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "右1島",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(1592.96, 3.75, -1732.18))
+        _G.WindUI:Notify("已傳送到 右1島")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "右2島",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(2621.80, 3.75, -1732.79))
+        _G.WindUI:Notify("已傳送到 右2島")
+    end
+})
+
+RedvsBlueTab:Button({
+    Title = "紅隊",
+    Callback = function()
+        local char = localplayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("找不到 HumanoidRootPart")
+            return
+        end
+
+        hrp.CFrame = CFrame.new(Vector3.new(261.37, 1.92, -662.47))
+        _G.WindUI:Notify("已傳送到 紅隊")
+    end
+})
+
+
 -- SettingsTab 內容
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
