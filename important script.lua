@@ -2137,6 +2137,7 @@ task.delay(3, function()
         localplayer.Character.HumanoidRootPart.CFrame = originalCFrame
     end
 end)
+_G.WindUI:Notity("執行完成")
 })
 
 -- 可選：這裡可以加通知、音效、或 UI 反饋
