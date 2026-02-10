@@ -2179,16 +2179,7 @@ RedvsBlueTab:Button({
     end
 })
 
--- 左1島
-RedvsBlueTab:Button({
-    Title = "左1島",
-    Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
+
 RedvsBlueTab:Button({
     Title = "一鍵佔領全部",
     Callback = function()
