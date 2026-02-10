@@ -2553,6 +2553,6 @@ setclipboard("https://discord.gg/4WSmx666DP")
 
 print("🎉 Nova中心 - 頂級通用腳本中心載入成功！")
 
-print("[NovaHub Debug] 腳本執行完畢，UI 應該已建好，按 Insert 開啟")
+-- print("[NovaHub Debug] 腳本執行完畢，UI 應該已建好，按 Insert 開啟")
 
    
