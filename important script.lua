@@ -2234,89 +2234,116 @@ RedvsBlueTab:Button({
 })
 
 -- 中島
+local function tweenTo(cf, time)
+    local char = game.Players.LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local tween = TweenService:Create(
+        hrp,
+        TweenInfo.new(time or 0.3, Enum.EasingStyle.Linear),
+        { CFrame = cf }
+    )
+    tween:Play()
+    tween.Completed:Wait()
+end
+RedvsBlueTab:Button({
+    Title = "藍隊",
+    Callback = function()
+        tweenTo(CFrame.new(186.11, 3.64, -2868.74))
+        _G.WindUI:Notify("已傳送到 藍隊")
+    end
+})
+
+            
 RedvsBlueTab:Button({
     Title = "中島",
     Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(305.10, 6, -1806.30))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 中島", "", 3)
+        tweenTo(CFrame.new(305.10, 3.75, -1806.30))
+        _G.WindUI:Notify("已傳送到 中島")
     end
 })
 
--- 左1島
 RedvsBlueTab:Button({
     Title = "左1島",
     Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(-954.76, 6, -1756.31))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 左1島", "", 3)
+        tweenTo(CFrame.new(-954.76, 3.75, -1756.31))
+        _G.WindUI:Notify("已傳送到 左1島")
     end
 })
 
--- 左2島
 RedvsBlueTab:Button({
     Title = "左2島",
     Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(-2210.20, 3, -1729.77))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 左2島", "", 3)
+        tweenTo(CFrame.new(-2210.20, 0.50, -1729.77))
+        _G.WindUI:Notify("已傳送到 左2島")
     end
 })
 
--- 右1島
-RedvsBlueTab:Button({
-    Title = "右1島",
-    Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(1592.96, 6, -1732.18))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 右1島", "", 3)
-    end
-})
-
--- 右2島
 RedvsBlueTab:Button({
     Title = "右2島",
     Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(2621.80, 6, -1732.79))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 右2島", "", 3)
+        tweenTo(CFrame.new(2621.80, 3.75, -1732.79))
+        _G.WindUI:Notify("已傳送到 右2島")
     end
 })
 
--- 紅隊
+RedvsBlueTab:Button({
+    Title = "右1島",
+    Callback = function()
+        tweenTo(CFrame.new(1592.96, 3.75, -1732.18))
+        _G.WindUI:Notify("已傳送到 右1島")
+    end
+})
+
 RedvsBlueTab:Button({
     Title = "紅隊",
     Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
-        humanoid:MoveTo(Vector3.new(261.37, 4, -662.47))
-        humanoid.MoveToFinished:Wait()
-        _G.WindUI:Notify("已傳送到 紅隊", "", 3)
+        tweenTo(CFrame.new(261.37, 1.92, -662.47))
+        _G.WindUI:Notify("已傳送到 紅隊")
     end
 })
 
+RedvsBlueTab:Button({
+    Title = "一鍵佔領全部（高速）",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            _G.WindUI:Notify("錯誤", "角色未載入", 3)
+            return
+        end
+
+        local TweenService = game:GetService("TweenService")
+
+        local points = {
+            CFrame.new(186.11, 3.64, -2868.74), -- 藍
+            CFrame.new(305.10, 3.75, -1806.30), -- 中
+            CFrame.new(-954.76, 3.75, -1756.31), -- 左1
+            CFrame.new(-2210.20, 0.50, -1729.77), -- 左2
+            CFrame.new(1592.96, 3.75, -1732.18), -- 右1
+            CFrame.new(2621.80, 3.75, -1732.79), -- 右2
+            CFrame.new(261.37, 1.92, -662.47), -- 紅
+        }
+
+        for _, cf in ipairs(points) do
+            local tween = TweenService:Create(
+                hrp,
+                TweenInfo.new(
+                    0.15, -- ⚡ 移動速度（越小越快）
+                    Enum.EasingStyle.Linear
+                ),
+                { CFrame = cf }
+            )
+
+            tween:Play()
+            tween.Completed:Wait()
+            task.wait(0.3) -- ⏱ 停留時間
+        end
+
+        _G.WindUI:Notify("完成", "高速佔領完成", 4)
+    end
+})
 -- SettingsTab 內容
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
@@ -2547,7 +2574,7 @@ Window:SelectTab(HomeTab)
 
 wait(1)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebulla-Softworks/Luna-Interface/refs/heads/main/source.lua"))()
+
 
 setclipboard("https://discord.gg/4WSmx666DP")
 
