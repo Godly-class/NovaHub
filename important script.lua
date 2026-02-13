@@ -2340,8 +2340,8 @@ RedvsBlueTab:Button({
             CFrame.new(1592.96, 3.75, -1732.18), -- 右1
             CFrame.new(2621.80, 3.75, -1732.79), -- 右2
             CFrame.new(261.37, 1.92, -662.47), -- 紅
-            CFrame.new(853.81, 146.47, -1725.44)
-            CFrame.new(-158.09, 42.40, -1740.25)
+            CFrame.new(853.81, 146.47, -1725.44),
+            CFrame.new(-158.09, 42.40, -1740.25),
         }
 
         for _, cf in ipairs(points) do
