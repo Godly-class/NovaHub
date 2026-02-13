@@ -1374,152 +1374,204 @@ UniversalTab:Toggle({
 
 })
 
+-- NovaHub - 顯示並複製當前位置（只執行一次）
+
+UniversalTab:Button({
+    Title = "📍 複製當前位置",
+    Desc = "點擊後顯示座標並複製到剪貼簿",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if not character then
+            showNotification("位置工具", "角色尚未載入", 5, "alert-triangle")
+            return
+        end
+        
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then
+            showNotification("位置工具", "找不到 HumanoidRootPart", 5, "alert-triangle")
+            return
+        end
+        
+        local pos = rootPart.Position
+        local coordText = string.format("Vector3.new(%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z)
+        
+        -- 顯示通知
+        showNotification("當前位置", coordText, 5, "map-pin")
+        
+        -- 複製到剪貼簿
+        if setclipboard then
+            setclipboard(coordText)
+            showNotification("複製成功", "座標已複製到剪貼簿", 4, "check")
+        elseif toclipboard then
+            toclipboard(coordText)
+            showNotification("複製成功", "座標已複製到剪貼簿", 4, "check")
+        else
+            showNotification("無法複製", "你的 executor 不支援 setclipboard / toclipboard", 5, "alert-triangle")
+        end
+    end
+})
+
+
 -- 飛行模式
 
+-- 全域變數（放在腳本頂端）
 local flyEnabled = false
+local bodyVelocity = nil
+local bodyGyro = nil
+local flyConnection = nil
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local flyConnection
+-- 飛行速度調整（可改）
+local flySpeed = 50  -- 基本速度
+local ascendSpeed = 30  -- 上昇/下降速度
 
-local flySpeed = 50
+-- 輸入狀態（PC 用）
+local movingForward = false
+local movingBackward = false
+local movingLeft = false
+local movingRight = false
+local ascending = false
+local descending = false
 
-local bodyVelocity, bodyGyro
-
+-- 開始飛行
 local function startFly()
-
     local character = LocalPlayer.Character
-
     if not character then return end
-
     
-
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-
     local rootPart = character:FindFirstChild("HumanoidRootPart")
-
+    if not humanoid or not rootPart then return end
     
-
-    if humanoid and rootPart then
-
-        flyEnabled = true
-
-        
-
-        bodyVelocity = Instance.new("BodyVelocity")
-
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-
-        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-
-        bodyVelocity.Parent = rootPart
-
-        
-
-        bodyGyro = Instance.new("BodyGyro")
-
-        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-
-        bodyGyro.CFrame = rootPart.CFrame
-
-        bodyGyro.Parent = rootPart
-
-        
-
-        humanoid.PlatformStand = true
-
-        
-
-        if flyConnection then flyConnection:Disconnect() end
-
-        flyConnection = RunService.RenderStepped:Connect(function()
-
-            if not flyEnabled or not rootPart or not bodyVelocity or not bodyGyro then return end
-
-            
-
-            local camera = workspace.CurrentCamera
-
-            local moveDirection = Vector3.new(0, 0, 0)
-
-            
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0,1,0) end
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0,1,0) end
-
-            
-
-            bodyVelocity.Velocity = moveDirection * flySpeed
-
-            bodyGyro.CFrame = camera.CFrame
-
-        end)
-
-        
-
-        showNotification("🚀 飛行", "飛行模式已啟動！PC: WASD+Space/Shift | 手機: 觸控控制", 4, "rocket")
-
-    end
-
-end
-
-local function stopFly()
-
-    flyEnabled = false
-
-    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-
-    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-
+    -- 關閉舊的
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    if flyConnection then flyConnection:Disconnect() end
     
-
-    local character = LocalPlayer.Character
-
-    if character then
-
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-        if humanoid then humanoid.PlatformStand = false end
-
-    end
-
+    humanoid.PlatformStand = true  -- 讓角色浮起來，不受重力
     
-
-    showNotification("🚀 飛行", "飛行模式已關閉", 3, "landmark")
-
-end
-
-UniversalTab:Toggle({
-
-    Title = "🚀 飛行模式",
-
-    Desc = "開啟飛行（PC: WASD+Space/Shift | 手機觸控支援）",
-
-    Value = false,
-
-    Callback = function(state)
-
-        if state then
-
-            startFly()
-
-        else
-
-            stopFly()
-
+    -- BodyVelocity：控制移動
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = rootPart
+    
+    -- BodyGyro：控制旋轉（跟攝影機方向）
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.P = 20000
+    bodyGyro.Parent = rootPart
+    
+    flyEnabled = true
+    
+    -- 每幀更新（用 Heartbeat 最穩）
+    flyConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if not flyEnabled or not rootPart or not character then return end
+        
+        local camera = workspace.CurrentCamera
+        local moveDir = Vector3.new(0, 0, 0)
+        
+        -- PC 鍵盤輸入
+        if UIS.KeyboardEnabled then
+            if movingForward then moveDir = moveDir + camera.CFrame.LookVector end
+            if movingBackward then moveDir = moveDir - camera.CFrame.LookVector end
+            if movingLeft then moveDir = moveDir - camera.CFrame.RightVector end
+            if movingRight then moveDir = moveDir + camera.CFrame.RightVector end
+            
+            local vertical = 0
+            if ascending then vertical = vertical + ascendSpeed end
+            if descending then vertical = vertical - ascendSpeed end
+            moveDir = moveDir + Vector3.new(0, vertical, 0)
         end
+        
+        -- Mobile：用 Humanoid.MoveDirection（joystick 方向）
+        if UIS.TouchEnabled then
+            -- MoveDirection 已經是世界空間的前後左右（基於攝影機）
+            moveDir = humanoid.MoveDirection * flySpeed
+            
+            -- 手機升降：可以用 JumpRequest 當「上」，或加雙指捏合（Pinch）偵測
+            -- 這裡先簡單用「跳躍按鈕」當上、下（可改成其他）
+            -- 如果想更好，可以加 TouchPinch 偵測雙指距離變化
+        end
+        
+        -- 統一處理速度
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * flySpeed
+        end
+        
+        bodyVelocity.Velocity = moveDir
+        
+        -- 讓角色面向攝影機方向（平滑）
+        bodyGyro.CFrame = camera.CFrame
+    end)
+    
+    showNotification("🚀 飛行", "飛行模式已開啟\nPC: WASD+Space/Shift\n手機: 搖桿移動", 5, "landmark")
+end
 
+-- 停止飛行
+local function stopFly()
+    flyEnabled = false
+    
+    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.PlatformStand = false end
     end
+    
+    showNotification("🚀 飛行", "飛行模式已關閉", 3, "landmark")
+end
 
+-- PC 鍵盤偵測（放在 Toggle 外面，全域）
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not flyEnabled then return end
+    
+    if input.KeyCode == Enum.KeyCode.W then movingForward = true end
+    if input.KeyCode == Enum.KeyCode.S then movingBackward = true end
+    if input.KeyCode == Enum.KeyCode.A then movingLeft = true end
+    if input.KeyCode == Enum.KeyCode.D then movingRight = true end
+    if input.KeyCode == Enum.KeyCode.Space then ascending = true end
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then descending = true end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if not flyEnabled then return end
+    
+    if input.KeyCode == Enum.KeyCode.W then movingForward = false end
+    if input.KeyCode == Enum.KeyCode.S then movingBackward = false end
+    if input.KeyCode == Enum.KeyCode.A then movingLeft = false end
+    if input.KeyCode == Enum.KeyCode.D then movingRight = false end
+    if input.KeyCode == Enum.KeyCode.Space then ascending = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then descending = false end
+end)
+
+-- 手機 JumpRequest（跳躍按鈕當「上」）
+UIS.JumpRequest:Connect(function()
+    if flyEnabled and UIS.TouchEnabled then
+        -- 這裡可以切換 ascending = not ascending（或加計時器）
+        ascending = true
+        task.delay(0.5, function() ascending = false end)  -- 短暫上升
+    end
+end)
+
+-- Toggle 部分（不變）
+UniversalTab:Toggle({
+    Title = "🚀 飛行模式",
+    Desc = "開啟飛行（PC: WASD+Space/Shift | 手機: 搖桿移動）",
+    Value = false,
+    Callback = function(state)
+        if state then
+            startFly()
+        else
+            stopFly()
+        end
+    end
 })
 
 UniversalTab:Slider({
@@ -2150,34 +2202,7 @@ RedvsBlueTab:Button({
 -- 可選：這裡可以加通知、音效、或 UI 反饋
 -- print("已鎖定背後 3 秒")
 -- 藍隊
-RedvsBlueTab:Button({
-    Title = "藍隊",
-    Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(186.11, 3.64, -2868.74)
-        _G.WindUI:Notify("已傳送到 藍隊", "", 3)
-    end
-})
 
--- 中島
-RedvsBlueTab:Button({
-    Title = "中島",
-    Callback = function()
-        local char = game.Players.LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            _G.WindUI:Notify("錯誤", "角色未載入", 3)
-            return
-        end
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(305.10, 3.75, -1806.30)
-        _G.WindUI:Notify("已傳送到 中島", "", 3)
-    end
-})
 
 
 RedvsBlueTab:Button({
