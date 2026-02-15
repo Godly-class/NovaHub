@@ -1791,11 +1791,11 @@ UniversalTab:Button({
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 
+local SavedNeckC0 = {}
 local Headless = false
-local SavedHeadData = {}
 
 UniversalTab:Toggle({
-    Title = "免費無頭",
+    Title = "背後漂浮頭（碰撞消失）",
     Default = false,
     Callback = function(Value)
         local Char = LP.Character or LP.CharacterAdded:Wait()
@@ -1803,52 +1803,49 @@ UniversalTab:Toggle({
         if not Hum then return end
 
         local Rig = Hum.RigType
-        local HRP = Char:FindFirstChild("HumanoidRootPart")
-        local Head = Char:FindFirstChild("Head")
-        if not HRP or not Head then return end
+        Headless = Value
 
-        if Value then
-            Headless = true
+        if Rig == Enum.HumanoidRigType.R6 then
+            local Torso = Char:FindFirstChild("Torso")
+            local Neck = Torso and Torso:FindFirstChild("Neck")
+            local Head = Char:FindFirstChild("Head")
+            if not Neck or not Head then return end
 
-            -- 保存原始狀態
-            SavedHeadData[Head] = {
-                Position = Head.Position,
-                CanCollide = Head.CanCollide
-            }
+            if Headless then
+                SavedNeckC0[Neck] = Neck.C0
 
-            -- 原頭不可碰撞
-            Head.CanCollide = false
+                Head.CanCollide = false
 
-            -- 建立透明碰撞體（Hitbox）
-            local hitbox = Instance.new("Part")
-            hitbox.Name = "HeadHitbox"
-            hitbox.Size = Head.Size
-            hitbox.Anchored = false
-            hitbox.CanCollide = true
-            hitbox.Transparency = 1
-            hitbox.Massless = true
-            hitbox.Parent = Char
+                -- 往身體後面 + 微往上，臉朝上
+                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
 
-            -- Weld 附到 HumanoidRootPart
-            local weld = Instance.new("WeldConstraint")
-            weld.Part0 = HRP
-            weld.Part1 = hitbox
-            weld.Parent = hitbox
-
-            -- 移到身後 + 額外偏移
-            hitbox.CFrame = HRP.CFrame * CFrame.new(0, 1, 2)
-
-        else
-            Headless = false
-            -- 還原原本頭碰撞
-            local data = SavedHeadData[Head]
-            if data then
-                Head.CanCollide = data.CanCollide
+            else
+                if SavedNeckC0[Neck] then
+                    Neck.C0 = SavedNeckC0[Neck]
+                    Head.CanCollide = true
+                end
             end
 
-            -- 刪除 hitbox
-            local hb = Char:FindFirstChild("HeadHitbox")
-            if hb then hb:Destroy() end
+        elseif Rig == Enum.HumanoidRigType.R15 then
+            local UpperTorso = Char:FindFirstChild("UpperTorso")
+            local Neck = UpperTorso and UpperTorso:FindFirstChild("Neck")
+            local Head = Char:FindFirstChild("Head")
+            if not UpperTorso or not Neck or not Head then return end
+
+            if Headless then
+                SavedNeckC0[Neck] = Neck.C0
+
+                Head.CanCollide = false
+
+                -- 往身體後面 + 微往上，臉朝上
+                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
+
+            else
+                if SavedNeckC0[Neck] then
+                    Neck.C0 = SavedNeckC0[Neck]
+                    Head.CanCollide = true
+                end
+            end
         end
     end
 })
