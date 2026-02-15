@@ -2366,7 +2366,7 @@ RedvsBlueTab:Button({
 -- NTab (Wind UI 風格 - 只給三個控制項)
 
 
-NTab:Section({ Title = "自然災害炸服💥", TextSize = 20)
+NTab:Section({ Title = "自然災害炸服💥", TextSize = 20})
 
 -- 第一個：攻擊倍率滑桿 (AttackRate)
 NTab:Slider({
