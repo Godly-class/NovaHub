@@ -1786,38 +1786,42 @@ UniversalTab:Button({
     end
 })
 
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+
 local Headless = false
-local SavedHeadCF
+local SavedC0
 
 UniversalTab:Toggle({
     Title = "R6 無頭",
     Default = false,
     Callback = function(Value)
         Headless = Value
-        Char = LP.Character
-
-        if not Char then return end
-        if Char:FindFirstChild("Humanoid").RigType ~= Enum.HumanoidRigType.R6 then
+        
+        local Char = LP.Character or LP.CharacterAdded:Wait()
+        local Hum = Char:FindFirstChildOfClass("Humanoid")
+        if not Hum or Hum.RigType ~= Enum.HumanoidRigType.R6 then
             return
         end
-
-        local Head = Char:FindFirstChild("Head")
+        
         local Torso = Char:FindFirstChild("Torso")
-
-        if not Head or not Torso then return end
-
+        if not Torso then return end
+        
+        local Neck = Torso:FindFirstChild("Neck")
+        if not Neck then return end
+        
         if Headless then
-            SavedHeadCF = Head.CFrame
-
-            -- 移動到身體後面 + 臉朝上
-            Head.CFrame =
-                Torso.CFrame *
-                CFrame.new(0,0,1.5) *
-                CFrame.Angles(math.rad(-90),0,0)
-
+            -- 保存原始 C0
+            SavedC0 = Neck.C0
+            
+            -- 往身體後面移動 + 臉朝上
+            Neck.C0 =
+                SavedC0 *
+                CFrame.new(0, 0, 1.5) *
+                CFrame.Angles(math.rad(-90), 0, 0)
         else
-            if SavedHeadCF then
-                Head.CFrame = SavedHeadCF
+            if SavedC0 then
+                Neck.C0 = SavedC0
             end
         end
     end
@@ -2306,35 +2310,7 @@ RedvsBlueTab:Button({
 
 
 
-RedvsBlueTab:Button({
-    Title = "一鍵佔領全部",
-    Callback = function()
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local humanoid = char:WaitForChild("Humanoid")
 
-        local islands = {
-            {name="藍隊", pos=Vector3.new(186.11, 6, -2868.74)},
-            {name="中島", pos=Vector3.new(305.10, 6, -1806.30)},
-            {name="左1島", pos=Vector3.new(-954.76, 6, -1756.31)},
-            {name="左2島", pos=Vector3.new(-2210.20, 3, -1729.77)},
-            {name="右1島", pos=Vector3.new(1592.96, 6, -1732.18)},
-            {name="右2島", pos=Vector3.new(2621.80, 6, -1732.79)},
-            {name="紅隊", pos=Vector3.new(261.37, 4, -662.47)}
-        }
-
-        task.spawn(function()
-            for _, island in ipairs(islands) do
-                humanoid:MoveTo(island.pos)
-                _G.WindUI:Notify("傳送到 "..island.name, "", 2)
-                humanoid.MoveToFinished:Wait()
-                task.wait(1)  -- 每個島停 1 秒
-            end
-            _G.WindUI:Notify("一鍵佔領完成", "", 3)
-        end)
-    end
-})
 
 -- 藍隊
 RedvsBlueTab:Button({
@@ -2464,58 +2440,110 @@ RedvsBlueTab:Button({
     end
 })
 
-RedvsBlueTab:Toggle({
-    Title = "Kill All (自動裝備ClassicSword + 瞬移敵人身後自動揮砍)",
-    Desc = "開啟後每0.1秒檢查裝備劍，瞬移到無敵盾敵人身後自動攻擊，直到對方死亡後切換目標",
-    Default = false,
-    Callback = function(value)
-        getgenv().KillAllEnabled = value
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local swordName = "ClassicSword"
+getgenv().KillAllEnabled = false
+
+-- 找敵隊目標（活著 + 無無敵盾）
+local function getNextTarget()
+    for _, plr in pairs(Players:GetPlayers()) do
         
-        if value then
-            -- 啟動時立即檢查一次裝備
-            local tool = character:FindFirstChildOfClass("Tool")
-            if not tool or tool.Name \~= swordName then
-                local sword = game.ReplicatedStorage:FindFirstChild(swordName, true) or game.ReplicatedStorage:FindFirstChild(swordName)
-                if sword then
-                    sword = sword:Clone()
-                    sword.Parent = character
-                    character.Humanoid:EquipTool(sword)
+        if plr ~= LocalPlayer then
+            
+            if plr.Team ~= LocalPlayer.Team then
+                
+                local char = plr.Character
+                if char then
+                    
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    
+                    if hum and hrp and hum.Health > 0 then
+                        
+                        if not char:FindFirstChildOfClass("ForceField") then
+                            return char
+                        end
+                    end
                 end
             end
         end
     end
+    
+    return nil
+end
+
+-- Toggle
+RedvsBlueTab:Toggle({
+    Title = "Kill All (敵隊自動擊殺)",
+    Desc = "自動裝備劍 + 瞬移敵人身後 + 自動切換目標",
+    Default = false,
+    Callback = function(value)
+        getgenv().KillAllEnabled = value
+    end
 })
 
--- Kill All 核心邏輯（放在腳本其他地方，獨立運行）
+-- 核心循環
 spawn(function()
     while true do
         task.wait(0.1)
+
         if getgenv().KillAllEnabled then
-            -- 強制裝備 ClassicSword
+            
+            local character = LocalPlayer.Character
+            if not character then continue end
+            
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            
+            if not humanoid or not hrp then continue end
+            if humanoid.Health <= 0 then continue end
+
+            -- 自動裝備劍
             local tool = character:FindFirstChildOfClass("Tool")
-            if not tool or tool.Name \~= swordName then
-                local sword = game.ReplicatedStorage:FindFirstChild(swordName, true) or game.ReplicatedStorage:FindFirstChild(swordName)
+            if not tool or tool.Name ~= swordName then
+                
+                local sword = LocalPlayer.Backpack:FindFirstChild(swordName)
+                
                 if sword then
-                    sword = sword:Clone()
-                    sword.Parent = character
-                    character.Humanoid:EquipTool(sword)
+                    humanoid:EquipTool(sword)
                 end
             end
-            
-            -- 找目標 + 瞬移 + 揮砍
+
+            -- 找目標
             local target = getNextTarget()
             if target then
-                local behindPos = target.Position - target.CFrame.LookVector * 3
-                character.HumanoidRootPart.CFrame = CFrame.new(behindPos, target.Position)
                 
-                local currentTool = character:FindFirstChildOfClass("Tool")
-                if currentTool and currentTool:FindFirstChild("Handle") then
-                    currentTool:Activate()
+                local targetHRP = target:FindFirstChild("HumanoidRootPart")
+                local targetHum = target:FindFirstChildOfClass("Humanoid")
+                
+                if targetHRP and targetHum and targetHum.Health > 0 then
+                    
+                    -- 計算身後位置
+                    local behindPos =
+                        targetHRP.Position -
+                        targetHRP.CFrame.LookVector * 3
+                    
+                    -- 強制物理刷新
+                    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                    
+                    -- 穩定瞬移
+                    character:PivotTo(
+                        CFrame.new(behindPos, targetHRP.Position)
+                    )
+                    
+                    -- 攻擊
+                    local currentTool = character:FindFirstChildOfClass("Tool")
+                    if currentTool then
+                        currentTool:Activate()
+                    end
                 end
             end
         end
     end
 end)
+
 
 -- NTab (Wind UI 風格 - 只給三個控制項)
 
