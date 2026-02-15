@@ -1865,8 +1865,16 @@ getgenv().TranslateConfig = {
     UISpeed = 3                 -- UI翻譯間隔秒數
 }
 
--- ==== 翻譯函數 ====
+-- 翻譯緩存表
+local TranslateCache = {} -- [原文..目標語言] = 翻譯結果
+
+-- ==== 翻譯函數（帶緩存） ====
 local function Translate(text)
+    local key = text .. "_" .. getgenv().TranslateConfig.TargetLanguage
+    if TranslateCache[key] then
+        return TranslateCache[key]
+    end
+
     local url = "https://libretranslate.com/translate"
     local body = HttpService:JSONEncode({
         q = text,
@@ -1879,13 +1887,18 @@ local function Translate(text)
         return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
     end)
 
+    local translated
     if success then
         local data = HttpService:JSONDecode(res)
-        return data.translatedText
+        translated = data.translatedText
     else
         warn("翻譯失敗:", res)
-        return text
+        translated = text
     end
+
+    -- 存入緩存
+    TranslateCache[key] = translated
+    return translated
 end
 
 -- ==== 聊天翻譯 ====
@@ -1970,7 +1983,6 @@ UniversalTab:Slider({
         getgenv().TranslateConfig.UISpeed = value
     end
 })
-
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
@@ -2744,60 +2756,48 @@ SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
 
 SettingsTab:Divider()
 
+-- 主題表格（用 Key 對應 WindUI 已有主題）
 local themes = {
-
-    "Dark 🌙", 
-
-    "Light ☀️", 
-
-    "Darker 🌑", 
-
-    "Luna 🌕", 
-
-    "Aqua 🌊",
-
-    "Purple 💜",
-
-    "Red ❤️"
-
+    ["Dark 🌙"]   = "Dark",
+    ["Light ☀️"] = "Light",
+    ["Darker 🌑"] = "Darker",
+    ["Luna 🌕"]   = "Luna",
+    ["Aqua 🌊"]   = "Aqua",
+    ["Purple 💜"] = "Purple",
+    ["Red ❤️"]    = "Red"
 }
 
+-- 下拉選單
 SettingsTab:Dropdown({
-
     Title = "🎭 介面主題",
-
     Desc = "更改介面主題與配色",
-
-    Values = themes,
-
+    Values = { "Dark 🌙", "Light ☀️", "Darker 🌑", "Luna 🌕", "Aqua 🌊", "Purple 💜", "Red ❤️" },
     Value = "Dark 🌙",
-
     Callback = function(value)
-
-        local themeName = string.gsub(value, " [%p%w]*$", "")
-
-        _G.WindUI:SetTheme(themeName)
-
-        showNotification("🎭 主題", "介面主題已設為：" .. value, 3, "palette")
-
+        local themeKey = themes[value]  -- 對應 WindUI 的主題 Key
+        if themeKey and _G.WindUI then
+            _G.WindUI:SetTheme(themeKey)
+            -- 顯示通知
+            _G.WindUI:Notify({
+                Title = "🎭 主題",
+                Content = "介面主題已設為：" .. value,
+                Duration = 3,
+                Icon = "palette"
+            })
+        end
     end
-
 })
 
+-- 介面透明度滑桿
 SettingsTab:Slider({
-
     Title = "🔍 介面透明度",
-
     Desc = "調整視窗透明程度",
-
     Value = { Min = 0, Max = 1, Default = 0.1, Step = 0.05 },
-
     Callback = function(value)
-
-        _G.WindUI.TransparencyValue = value
-
+        if _G.WindUI then
+            _G.WindUI.TransparencyValue = value
+        end
     end
-
 })
 
 SettingsTab:Keybind({
