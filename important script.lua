@@ -2002,8 +2002,8 @@ RunService.Heartbeat:Connect(function()
             AutoTranslateUI()
         end
     end
-end)        format = "text"
-    })
+end)        
+})
 
     local success, res = pcall(function()
         return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
