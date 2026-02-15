@@ -204,7 +204,7 @@ local RivalsTab = Window:Tab({Title = "⚔️ 對手", Icon = "trophy"})
 
 local DoorsTab = Window:Tab({Title = "🚪 門", Icon = "door-closed"})
 
-local ArsenalTab = Window:Tab({Title = "🎯 軍火庫", Icon = "crosshair"})
+local ArsenalTab = Window:Tab({Title = "⚔️ 刀刃球", Icon = "crosshair"})
 
 local BrookhavenTab = Window:Tab({Title = "🏡 布魯克海文RP", Icon = "city"})
 
@@ -233,6 +233,8 @@ local CriminalityTab = Window:Tab({Title = "💀 Criminality", Icon = "skull-cro
 local MusicTab = Window:Tab({Title = "🎶 音樂播放器", Icon = "shield"})
 
 local RedvsBlueTab = Window:Tab({Title = "✈️ 紅色vs藍色飛機戰爭", Icon = "shield"})
+
+local NTab = Window:Tab({Title = "🌧️ 自然災害模擬器", Icon = "rain"})
 
 local SettingsTab = Window:Tab({Title = "⚡ 設定", Icon = "settings"})
 
@@ -443,13 +445,11 @@ createScriptButton(DoorsTab, "DOORS Velocity X", "速度與生存功能", "https
 
 -- ArsenalTab
 
-ArsenalTab:Section({ Title = "🎯 軍火庫 腳本", TextSize = 18 })
+ArsenalTab:Section({ Title = "⚔️ 刀刃球 腳本", TextSize = 18 })
 
 ArsenalTab:Divider()
 
-createScriptButton(ArsenalTab, "Arsenal Vapa v2 Hub", "瞄準與透視功能", "https://raw.githubusercontent.com/Nickyangtpe/Vapa-v2/refs/heads/main/Vapav2-Arsenal.lua", "軍火庫", "🎨")
-
-createScriptButton(ArsenalTab, "Arsenal Tbao Hub", "完整軍火庫腳本套裝", "https://raw.githubusercontent.com/tbao143/thaibao/main/TbaoHubArsenal", "軍火庫", "🐯")
+createScriptButton(ArsenalTab, "Keyless script", "無鑰匙推薦腳本", "https://4x.wtf/loader", "刀刃球", "⚔️")
 
 -- BrookhavenTab
 
@@ -2362,7 +2362,68 @@ RedvsBlueTab:Button({
         _G.WindUI:Notify("完成", "高速佔領完成", 4)
     end
 })
--- SettingsTab 內容
+
+-- NTab (Wind UI 風格 - 只給三個控制項)
+
+
+NTab:Section("自然災害炸服")
+
+-- 第一個：攻擊倍率滑桿 (AttackRate)
+NTab:Slider({
+    Name = "攻擊威力",
+    Info = "調整發送次數",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = "次",
+    CurrentValue = 10,
+    Flag = "AttackRate",
+    Callback = function(Value)
+        getgenv().AttackRate = Value
+    end,
+})
+
+-- 第二個：發送速率滑桿 (SpamDelay)
+NTab:Slider({
+    Name = "發送間隔",
+    Info = "每多少秒發一次",
+    Range = {0.01, 0.5},
+    Increment = 0.01,
+    Suffix = "秒",
+    CurrentValue = 0.03,
+    Flag = "SpamDelay",
+    Callback = function(Value)
+        getgenv().SpamDelay = Value
+    end,
+})
+
+-- 第三個：開關按鈕 (是否攻擊)
+NTab:Toggle({
+    Name = "是否攻擊 (Enable Spam)",
+    CurrentValue = false,
+    Flag = "SpamEnabled",
+    Callback = function(Value)
+        if Value then
+            -- 啟動 spam
+            if connection then connection:Disconnect() end
+            
+            connection = RunService.Heartbeat:Connect(function()
+                task.wait(getgenv().SpamDelay)  -- 加入延遲防太快
+                for i = 1, getgenv().AttackRate do
+                    pcall(function()
+                        event:FireServer("ClickedApple")
+                        event:FireServer("ClickedBalloon")
+                    end)
+                end
+            end)
+        else
+            -- 停止 spam
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+        end
+    end,
+})
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
 
