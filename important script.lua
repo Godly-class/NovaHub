@@ -1852,34 +1852,7 @@ UniversalTab:Toggle({
 
 UniversalTab:Divider()
 
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
-local LP = Players.LocalPlayer
 
--- ==== 設定變數 ====
-getgenv().TranslateConfig = {
-    TargetLanguage = "zh-CN",   -- 默認語言
-    AutoChatTranslate = false,  -- 聊天翻譯
-    AutoUITranslate = false,    -- UI翻譯
-    UISpeed = 3                 -- UI翻譯間隔秒數
-}
-
--- 翻譯緩存表
-local TranslateCache = {} -- [原文..目標語言] = 翻譯結果
-
--- ==== 翻譯函數（帶緩存） ====
-local function Translate(text)
-    local key = text .. "_" .. getgenv().TranslateConfig.TargetLanguage
-    if TranslateCache[key] then
-        return TranslateCache[key]
-    end
-
-    local url = "https://libretranslate.com/translate"
-    local body = HttpService:JSONEncode({
-        q = text,
-        source = "auto",
-        target = getgenv().TranslateConfig.TargetLanguage,
 -- ========= Roblox 服務 =========
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
