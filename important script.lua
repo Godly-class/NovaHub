@@ -1795,7 +1795,7 @@ local SavedHeadData = {}
 local Headless = false
 
 UniversalTab:Toggle({
-    Title = "隱碰撞頭 (R6/R15)",
+    Title = "隱碰撞頭（背後漂浮）",
     Default = false,
     Callback = function(Value)
         local Char = LP.Character or LP.CharacterAdded:Wait()
@@ -1805,53 +1805,30 @@ UniversalTab:Toggle({
         local Rig = Hum.RigType
         Headless = Value
 
-        if Rig == Enum.HumanoidRigType.R6 then
-            local Torso = Char:FindFirstChild("Torso")
-            local Neck = Torso and Torso:FindFirstChild("Neck")
-            local Head = Char:FindFirstChild("Head")
-            if not Neck or not Head then return end
+        local HRP = Char:FindFirstChild("HumanoidRootPart")
+        if not HRP then return end
 
-            if Headless then
-                SavedHeadData[Head] = {
-                    C0 = Neck.C0,
-                    CanCollide = Head.CanCollide,
-                    PositionOffset = Head.Position - Torso.Position
-                }
+        local Head = Char:FindFirstChild("Head")
+        if not Head then return end
 
-                Head.CanCollide = false
+        if Headless then
+            -- 保存原始 C0 / CanCollide
+            SavedHeadData[Head] = {
+                CanCollide = Head.CanCollide,
+                Position = Head.Position
+            }
 
-                -- 移到身後 + 微往上
-                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
-            else
-                local data = SavedHeadData[Head]
-                if data then
-                    Neck.C0 = data.C0
-                    Head.CanCollide = data.CanCollide
-                end
-            end
+            Head.CanCollide = false
 
-        elseif Rig == Enum.HumanoidRigType.R15 then
-            local Head = Char:FindFirstChild("Head")
-            local UpperTorso = Char:FindFirstChild("UpperTorso")
-            local Neck = UpperTorso and UpperTorso:FindFirstChild("Neck")
-            if not Head or not UpperTorso or not Neck then return end
+            -- 計算背後位置
+            local offsetBack = Vector3.new(0, 1, 2) -- 往上 1, 往後 2
+            Head.CFrame = HRP.CFrame * CFrame.new(offsetBack) * CFrame.Angles(math.rad(-90), 0, 0)
 
-            if Headless then
-                SavedHeadData[Head] = {
-                    C0 = Neck.C0,
-                    CanCollide = Head.CanCollide
-                }
-
-                Head.CanCollide = false
-
-                -- 移到身後 + 微往上
-                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
-            else
-                local data = SavedHeadData[Head]
-                if data then
-                    Neck.C0 = data.C0
-                    Head.CanCollide = data.CanCollide
-                end
+        else
+            local data = SavedHeadData[Head]
+            if data then
+                Head.CanCollide = data.CanCollide
+                Head.CFrame = CFrame.new(data.Position)
             end
         end
     end
