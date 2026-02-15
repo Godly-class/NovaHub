@@ -1849,6 +1849,128 @@ UniversalTab:Toggle({
         end
     end
 })
+
+UniversalTab:Divider()
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+
+-- ==== 設定變數 ====
+getgenv().TranslateConfig = {
+    TargetLanguage = "zh-CN",   -- 默認語言
+    AutoChatTranslate = false,  -- 聊天翻譯
+    AutoUITranslate = false,    -- UI翻譯
+    UISpeed = 3                 -- UI翻譯間隔秒數
+}
+
+-- ==== 翻譯函數 ====
+local function Translate(text)
+    local url = "https://libretranslate.com/translate"
+    local body = HttpService:JSONEncode({
+        q = text,
+        source = "auto",
+        target = getgenv().TranslateConfig.TargetLanguage,
+        format = "text"
+    })
+
+    local success, res = pcall(function()
+        return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
+    end)
+
+    if success then
+        local data = HttpService:JSONDecode(res)
+        return data.translatedText
+    else
+        warn("翻譯失敗:", res)
+        return text
+    end
+end
+
+-- ==== 聊天翻譯 ====
+Players.PlayerChatted:Connect(function(player, message)
+    if not getgenv().TranslateConfig.AutoChatTranslate then return end
+    task.spawn(function()
+        local translated = Translate(message)
+        if _G.WindUI then
+            _G.WindUI:Notify({
+                Title = translated,
+                Content = "自動翻譯完成！",
+                Duration = 5,
+                Icon = "Translate"
+            })
+        end
+    end)
+end)
+
+-- ==== UI翻譯函數 ====
+local function AutoTranslateUI()
+    local ScreenGui = LP:WaitForChild("PlayerGui"):WaitForChild("ScreenGui") -- 改成你的 GUI 名稱
+    for _, obj in pairs(ScreenGui:GetDescendants()) do
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+            local targetName = obj.Name .. "_" .. (getgenv().TranslateConfig.TargetLanguage:sub(4,5))
+            local translatedBox = ScreenGui:FindFirstChild(targetName, true)
+            if translatedBox and (translatedBox:IsA("TextLabel") or translatedBox:IsA("TextButton") or translatedBox:IsA("TextBox")) then
+                task.spawn(function()
+                    translatedBox.Text = Translate(obj.Text)
+                end)
+            end
+        end
+    end
+end
+
+-- ==== 循環UI翻譯 ====
+RunService.Heartbeat:Connect(function(dt)
+    if getgenv().TranslateConfig.AutoUITranslate then
+        local interval = getgenv().TranslateConfig.UISpeed
+        if not getgenv()._LastUITranslate or tick() - getgenv()._LastUITranslate >= interval then
+            getgenv()._LastUITranslate = tick()
+            AutoTranslateUI()
+        end
+    end
+end)
+
+-- ==== Wind UI 組件 ====
+-- 語言下拉
+UniversalTab:Dropdown({
+    Title = "翻譯語言",
+    Default = "zh-CN",
+    Options = {"zh-CN", "zh-TW", "en", "ja"},
+    Callback = function(value)
+        getgenv().TranslateConfig.TargetLanguage = value
+    end
+})
+
+-- 聊天翻譯 Toggle
+UniversalTab:Toggle({
+    Title = "聊天翻譯",
+    Default = false,
+    Callback = function(value)
+        getgenv().TranslateConfig.AutoChatTranslate = value
+    end
+})
+
+-- UI翻譯 Toggle
+UniversalTab:Toggle({
+    Title = "UI翻譯",
+    Default = false,
+    Callback = function(value)
+        getgenv().TranslateConfig.AutoUITranslate = value
+    end
+})
+
+-- 翻譯速度滑動條
+UniversalTab:Slider({
+    Title = "UI翻譯間隔（秒）",
+    Default = 3,
+    Min = 1,
+    Max = 5,
+    Callback = function(value)
+        getgenv().TranslateConfig.UISpeed = value
+    end
+})
+
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
