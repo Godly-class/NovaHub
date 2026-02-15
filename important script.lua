@@ -1791,11 +1791,11 @@ UniversalTab:Button({
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 
-local SavedHeadData = {}
 local Headless = false
+local SavedHeadData = {}
 
 UniversalTab:Toggle({
-    Title = "隱碰撞頭（背後漂浮）",
+    Title = "免費無頭",
     Default = false,
     Callback = function(Value)
         local Char = LP.Character or LP.CharacterAdded:Wait()
@@ -1803,33 +1803,52 @@ UniversalTab:Toggle({
         if not Hum then return end
 
         local Rig = Hum.RigType
-        Headless = Value
-
         local HRP = Char:FindFirstChild("HumanoidRootPart")
-        if not HRP then return end
-
         local Head = Char:FindFirstChild("Head")
-        if not Head then return end
+        if not HRP or not Head then return end
 
-        if Headless then
-            -- 保存原始 C0 / CanCollide
+        if Value then
+            Headless = true
+
+            -- 保存原始狀態
             SavedHeadData[Head] = {
-                CanCollide = Head.CanCollide,
-                Position = Head.Position
+                Position = Head.Position,
+                CanCollide = Head.CanCollide
             }
 
+            -- 原頭不可碰撞
             Head.CanCollide = false
 
-            -- 計算背後位置
-            local offsetBack = Vector3.new(0, 1, 2) -- 往上 1, 往後 2
-            Head.CFrame = HRP.CFrame * CFrame.new(offsetBack) * CFrame.Angles(math.rad(-90), 0, 0)
+            -- 建立透明碰撞體（Hitbox）
+            local hitbox = Instance.new("Part")
+            hitbox.Name = "HeadHitbox"
+            hitbox.Size = Head.Size
+            hitbox.Anchored = false
+            hitbox.CanCollide = true
+            hitbox.Transparency = 1
+            hitbox.Massless = true
+            hitbox.Parent = Char
+
+            -- Weld 附到 HumanoidRootPart
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = HRP
+            weld.Part1 = hitbox
+            weld.Parent = hitbox
+
+            -- 移到身後 + 額外偏移
+            hitbox.CFrame = HRP.CFrame * CFrame.new(0, 1, 2)
 
         else
+            Headless = false
+            -- 還原原本頭碰撞
             local data = SavedHeadData[Head]
             if data then
                 Head.CanCollide = data.CanCollide
-                Head.CFrame = CFrame.new(data.Position)
             end
+
+            -- 刪除 hitbox
+            local hb = Char:FindFirstChild("HeadHitbox")
+            if hb then hb:Destroy() end
         end
     end
 })
