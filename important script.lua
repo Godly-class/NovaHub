@@ -2003,7 +2003,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)        
-})
 
     local success, res = pcall(function()
         return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
