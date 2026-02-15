@@ -1795,7 +1795,7 @@ local SavedHeadData = {}
 local Headless = false
 
 UniversalTab:Toggle({
-    Title = "假無頭",
+    Title = "隱碰撞頭 (R6/R15)",
     Default = false,
     Callback = function(Value)
         local Char = LP.Character or LP.CharacterAdded:Wait()
@@ -1812,35 +1812,21 @@ UniversalTab:Toggle({
             if not Neck or not Head then return end
 
             if Headless then
-                -- 保存原始 C0 與顏色、透明度
                 SavedHeadData[Head] = {
                     C0 = Neck.C0,
-                    Transparency = Head.Transparency,
                     CanCollide = Head.CanCollide,
-                    Mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                    PositionOffset = Head.Position - Torso.Position
                 }
 
-                -- 隱藏頭部
-                Head.Transparency = 1
                 Head.CanCollide = false
-                local mesh = Head:FindFirstChildOfClass("SpecialMesh")
-                if mesh then mesh.MeshId = "" end
 
-                -- 移到背後 + 臉朝上
-                Neck.C0 = CFrame.new(0, 0, 2) * CFrame.Angles(math.rad(-90), 0, 0)
-
+                -- 移到身後 + 微往上
+                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
             else
                 local data = SavedHeadData[Head]
                 if data then
                     Neck.C0 = data.C0
-                    Head.Transparency = data.Transparency
                     Head.CanCollide = data.CanCollide
-                    local mesh = Head:FindFirstChildOfClass("SpecialMesh")
-                    if mesh and data.Mesh then
-                        mesh.MeshId = data.Mesh.MeshId
-                        mesh.TextureId = data.Mesh.TextureId
-                        mesh.Scale = data.Mesh.Scale
-                    end
                 end
             end
 
@@ -1853,31 +1839,18 @@ UniversalTab:Toggle({
             if Headless then
                 SavedHeadData[Head] = {
                     C0 = Neck.C0,
-                    Transparency = Head.Transparency,
-                    CanCollide = Head.CanCollide,
-                    Mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                    CanCollide = Head.CanCollide
                 }
 
-                Head.Transparency = 1
                 Head.CanCollide = false
-                local mesh = Head:FindFirstChildOfClass("SpecialMesh")
-                if mesh then mesh.MeshId = "" end
 
-                -- 移到 UpperTorso 後面 + 臉朝上
-                Neck.C0 = CFrame.new(0, 0, 2) * CFrame.Angles(math.rad(-90), 0, 0)
-
+                -- 移到身後 + 微往上
+                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
             else
                 local data = SavedHeadData[Head]
                 if data then
                     Neck.C0 = data.C0
-                    Head.Transparency = data.Transparency
                     Head.CanCollide = data.CanCollide
-                    local mesh = Head:FindFirstChildOfClass("SpecialMesh")
-                    if mesh and data.Mesh then
-                        mesh.MeshId = data.Mesh.MeshId
-                        mesh.TextureId = data.Mesh.TextureId
-                        mesh.Scale = data.Mesh.Scale
-                    end
                 end
             end
         end
