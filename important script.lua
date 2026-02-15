@@ -1724,6 +1724,104 @@ UserInputService.JumpRequest:Connect(function()
 
 end)
 
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+local Char = LP.Character or LP.CharacterAdded:Wait()
+
+local EnergyEnabled = false
+local EnergyConnection
+local OriginalData = {}
+
+UniversalTab:Button({
+    Title = "玩家透明",
+    Callback = function()
+        EnergyEnabled = not EnergyEnabled
+        Char = LP.Character
+
+        if EnergyEnabled then
+            -- 保存原始數據
+            for _,v in pairs(Char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    OriginalData[v] = {
+                        Material = v.Material,
+                        Transparency = v.Transparency,
+                        Color = v.Color
+                    }
+                    v.Material = Enum.Material.ForceField
+                    v.Transparency = 0.2
+                end
+            end
+
+            -- 彩虹循環
+            local hue = 0
+            EnergyConnection = RunService.RenderStepped:Connect(function(dt)
+                hue = (hue + dt * 0.1) % 1
+                local color = Color3.fromHSV(hue,1,1)
+                for part,_ in pairs(OriginalData) do
+                    if part and part.Parent then
+                        part.Color = color
+                    end
+                end
+            end)
+
+        else
+            -- 恢復
+            if EnergyConnection then
+                EnergyConnection:Disconnect()
+            end
+
+            for part,data in pairs(OriginalData) do
+                if part and part.Parent then
+                    part.Material = data.Material
+                    part.Transparency = data.Transparency
+                    part.Color = data.Color
+                end
+            end
+
+            OriginalData = {}
+        end
+    end
+})
+
+local Headless = false
+local SavedHeadCF
+
+UniversalTab:Toggle({
+    Title = "R6 無頭",
+    Default = false,
+    Callback = function(Value)
+        Headless = Value
+        Char = LP.Character
+
+        if not Char then return end
+        if Char:FindFirstChild("Humanoid").RigType ~= Enum.HumanoidRigType.R6 then
+            return
+        end
+
+        local Head = Char:FindFirstChild("Head")
+        local Torso = Char:FindFirstChild("Torso")
+
+        if not Head or not Torso then return end
+
+        if Headless then
+            SavedHeadCF = Head.CFrame
+
+            -- 移動到身體後面 + 臉朝上
+            Head.CFrame =
+                Torso.CFrame *
+                CFrame.new(0,0,1.5) *
+                CFrame.Angles(math.rad(-90),0,0)
+
+        else
+            if SavedHeadCF then
+                Head.CFrame = SavedHeadCF
+            end
+        end
+    end
+})
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
@@ -1852,103 +1950,6 @@ end)
 
 UniversalTab:Divider()
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local LP = Players.LocalPlayer
-local Char = LP.Character or LP.CharacterAdded:Wait()
-
-local EnergyEnabled = false
-local EnergyConnection
-local OriginalData = {}
-
-UniversalTab:Button({
-    Title = "玩家透明能量",
-    Callback = function()
-        EnergyEnabled = not EnergyEnabled
-        Char = LP.Character
-
-        if EnergyEnabled then
-            -- 保存原始數據
-            for _,v in pairs(Char:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    OriginalData[v] = {
-                        Material = v.Material,
-                        Transparency = v.Transparency,
-                        Color = v.Color
-                    }
-                    v.Material = Enum.Material.ForceField
-                    v.Transparency = 0.2
-                end
-            end
-
-            -- 彩虹循環
-            local hue = 0
-            EnergyConnection = RunService.RenderStepped:Connect(function(dt)
-                hue = (hue + dt * 0.1) % 1
-                local color = Color3.fromHSV(hue,1,1)
-                for part,_ in pairs(OriginalData) do
-                    if part and part.Parent then
-                        part.Color = color
-                    end
-                end
-            end)
-
-        else
-            -- 恢復
-            if EnergyConnection then
-                EnergyConnection:Disconnect()
-            end
-
-            for part,data in pairs(OriginalData) do
-                if part and part.Parent then
-                    part.Material = data.Material
-                    part.Transparency = data.Transparency
-                    part.Color = data.Color
-                end
-            end
-
-            OriginalData = {}
-        end
-    end
-})
-
-local Headless = false
-local SavedHeadCF
-
-UniversalTab:Toggle({
-    Title = "R6 無頭",
-    Default = false,
-    Callback = function(Value)
-        Headless = Value
-        Char = LP.Character
-
-        if not Char then return end
-        if Char:FindFirstChild("Humanoid").RigType ~= Enum.HumanoidRigType.R6 then
-            return
-        end
-
-        local Head = Char:FindFirstChild("Head")
-        local Torso = Char:FindFirstChild("Torso")
-
-        if not Head or not Torso then return end
-
-        if Headless then
-            SavedHeadCF = Head.CFrame
-
-            -- 移動到身體後面 + 臉朝上
-            Head.CFrame =
-                Torso.CFrame *
-                CFrame.new(0,0,1.5) *
-                CFrame.Angles(math.rad(-90),0,0)
-
-        else
-            if SavedHeadCF then
-                Head.CFrame = SavedHeadCF
-            end
-        end
-    end
-})
 
 -- MusicTab
 
