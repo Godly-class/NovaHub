@@ -2366,48 +2366,37 @@ RedvsBlueTab:Button({
 -- NTab (Wind UI 風格 - 只給三個控制項)
 
 
-NTab:Section("自然災害炸服")
+NTab:Section({ Title = "自然災害炸服💥", TextSize = 20)
 
 -- 第一個：攻擊倍率滑桿 (AttackRate)
 NTab:Slider({
-    Name = "攻擊威力",
-    Info = "調整發送次數",
-    Range = {1, 100},
-    Increment = 1,
-    Suffix = "次",
-    CurrentValue = 10,
-    Flag = "AttackRate",
-    Callback = function(Value)
-        getgenv().AttackRate = Value
-    end,
+    Title = "⚡ 攻擊倍率",
+    Desc = "每次 Heartbeat 發送次數 (建議 10\~30)",
+    Value = { Min = 1, Max = 100, Default = 50, Step = 1 },
+    Callback = function(value)
+        getgenv().AttackRate = value
+    end
 })
 
--- 第二個：發送速率滑桿 (SpamDelay)
 NTab:Slider({
-    Name = "發送間隔",
-    Info = "每多少秒發一次",
-    Range = {0.01, 0.5},
-    Increment = 0.01,
-    Suffix = "秒",
-    CurrentValue = 0.03,
-    Flag = "SpamDelay",
-    Callback = function(Value)
-        getgenv().SpamDelay = Value
-    end,
+    Title = "⏱️ 發送間隔",
+    Desc = "每多少秒發一次 (防踢，建議 0.03\~0.1)",
+    Value = { Min = 0.01, Max = 0.5, Default = 0.03, Step = 0.01 },
+    Callback = function(value)
+        getgenv().SpamDelay = value
+    end
 })
 
--- 第三個：開關按鈕 (是否攻擊)
 NTab:Toggle({
-    Name = "是否攻擊 (Enable Spam)",
-    CurrentValue = false,
-    Flag = "SpamEnabled",
-    Callback = function(Value)
-        if Value then
-            -- 啟動 spam
+    Title = "🔥 是否攻擊",
+    Desc = "開啟後自動 spam ClickedApple / ClickedBalloon",
+    Default = false,
+    Callback = function(value)
+        if value then
             if connection then connection:Disconnect() end
             
             connection = RunService.Heartbeat:Connect(function()
-                task.wait(getgenv().SpamDelay)  -- 加入延遲防太快
+                task.wait(getgenv().SpamDelay)
                 for i = 1, getgenv().AttackRate do
                     pcall(function()
                         event:FireServer("ClickedApple")
@@ -2416,13 +2405,12 @@ NTab:Toggle({
                 end
             end)
         else
-            -- 停止 spam
             if connection then
                 connection:Disconnect()
                 connection = nil
             end
         end
-    end,
+    end
 })
 
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
