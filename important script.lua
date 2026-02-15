@@ -1850,6 +1850,106 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 
 end)
 
+UniversalTab:Divider()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+local Char = LP.Character or LP.CharacterAdded:Wait()
+
+local EnergyEnabled = false
+local EnergyConnection
+local OriginalData = {}
+
+UniversalTab:Button({
+    Title = "玩家透明能量",
+    Callback = function()
+        EnergyEnabled = not EnergyEnabled
+        Char = LP.Character
+
+        if EnergyEnabled then
+            -- 保存原始數據
+            for _,v in pairs(Char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    OriginalData[v] = {
+                        Material = v.Material,
+                        Transparency = v.Transparency,
+                        Color = v.Color
+                    }
+                    v.Material = Enum.Material.ForceField
+                    v.Transparency = 0.2
+                end
+            end
+
+            -- 彩虹循環
+            local hue = 0
+            EnergyConnection = RunService.RenderStepped:Connect(function(dt)
+                hue = (hue + dt * 0.1) % 1
+                local color = Color3.fromHSV(hue,1,1)
+                for part,_ in pairs(OriginalData) do
+                    if part and part.Parent then
+                        part.Color = color
+                    end
+                end
+            end)
+
+        else
+            -- 恢復
+            if EnergyConnection then
+                EnergyConnection:Disconnect()
+            end
+
+            for part,data in pairs(OriginalData) do
+                if part and part.Parent then
+                    part.Material = data.Material
+                    part.Transparency = data.Transparency
+                    part.Color = data.Color
+                end
+            end
+
+            OriginalData = {}
+        end
+    end
+})
+
+local Headless = false
+local SavedHeadCF
+
+UniversalTab:Toggle({
+    Title = "R6 無頭",
+    Default = false,
+    Callback = function(Value)
+        Headless = Value
+        Char = LP.Character
+
+        if not Char then return end
+        if Char:FindFirstChild("Humanoid").RigType ~= Enum.HumanoidRigType.R6 then
+            return
+        end
+
+        local Head = Char:FindFirstChild("Head")
+        local Torso = Char:FindFirstChild("Torso")
+
+        if not Head or not Torso then return end
+
+        if Headless then
+            SavedHeadCF = Head.CFrame
+
+            -- 移動到身體後面 + 臉朝上
+            Head.CFrame =
+                Torso.CFrame *
+                CFrame.new(0,0,1.5) *
+                CFrame.Angles(math.rad(-90),0,0)
+
+        else
+            if SavedHeadCF then
+                Head.CFrame = SavedHeadCF
+            end
+        end
+    end
+})
+
 -- MusicTab
 
 MusicTab:Section({ Title = "🎶音樂播放", TextSize = 20 })
@@ -2362,6 +2462,59 @@ RedvsBlueTab:Button({
         _G.WindUI:Notify("完成", "高速佔領完成", 4)
     end
 })
+
+RedvsBlueTab:Toggle({
+    Title = "Kill All (自動裝備ClassicSword + 瞬移敵人身後自動揮砍)",
+    Desc = "開啟後每0.1秒檢查裝備劍，瞬移到無敵盾敵人身後自動攻擊，直到對方死亡後切換目標",
+    Default = false,
+    Callback = function(value)
+        getgenv().KillAllEnabled = value
+        
+        if value then
+            -- 啟動時立即檢查一次裝備
+            local tool = character:FindFirstChildOfClass("Tool")
+            if not tool or tool.Name \~= swordName then
+                local sword = game.ReplicatedStorage:FindFirstChild(swordName, true) or game.ReplicatedStorage:FindFirstChild(swordName)
+                if sword then
+                    sword = sword:Clone()
+                    sword.Parent = character
+                    character.Humanoid:EquipTool(sword)
+                end
+            end
+        end
+    end
+})
+
+-- Kill All 核心邏輯（放在腳本其他地方，獨立運行）
+spawn(function()
+    while true do
+        task.wait(0.1)
+        if getgenv().KillAllEnabled then
+            -- 強制裝備 ClassicSword
+            local tool = character:FindFirstChildOfClass("Tool")
+            if not tool or tool.Name \~= swordName then
+                local sword = game.ReplicatedStorage:FindFirstChild(swordName, true) or game.ReplicatedStorage:FindFirstChild(swordName)
+                if sword then
+                    sword = sword:Clone()
+                    sword.Parent = character
+                    character.Humanoid:EquipTool(sword)
+                end
+            end
+            
+            -- 找目標 + 瞬移 + 揮砍
+            local target = getNextTarget()
+            if target then
+                local behindPos = target.Position - target.CFrame.LookVector * 3
+                character.HumanoidRootPart.CFrame = CFrame.new(behindPos, target.Position)
+                
+                local currentTool = character:FindFirstChildOfClass("Tool")
+                if currentTool and currentTool:FindFirstChild("Handle") then
+                    currentTool:Activate()
+                end
+            end
+        end
+    end
+end)
 
 -- NTab (Wind UI 風格 - 只給三個控制項)
 
