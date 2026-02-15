@@ -1724,6 +1724,8 @@ UserInputService.JumpRequest:Connect(function()
 
 end)
 
+UniversalTab:Divider()
+
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
