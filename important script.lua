@@ -1789,39 +1789,94 @@ UniversalTab:Button({
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 
+local SavedHeadData = {}
 local Headless = false
-local SavedC0
 
 UniversalTab:Toggle({
-    Title = "R6 無頭",
+    Title = "假無頭",
     Default = false,
     Callback = function(Value)
-        Headless = Value
-        
         local Char = LP.Character or LP.CharacterAdded:Wait()
         local Hum = Char:FindFirstChildOfClass("Humanoid")
-        if not Hum or Hum.RigType ~= Enum.HumanoidRigType.R6 then
-            return
-        end
-        
-        local Torso = Char:FindFirstChild("Torso")
-        if not Torso then return end
-        
-        local Neck = Torso:FindFirstChild("Neck")
-        if not Neck then return end
-        
-        if Headless then
-            -- 保存原始 C0
-            SavedC0 = Neck.C0
-            
-            -- 往身體後面移動 + 臉朝上
-            Neck.C0 =
-                SavedC0 *
-                CFrame.new(0, 0, 1.5) *
-                CFrame.Angles(math.rad(-90), 0, 0)
-        else
-            if SavedC0 then
-                Neck.C0 = SavedC0
+        if not Hum then return end
+
+        local Rig = Hum.RigType
+        Headless = Value
+
+        if Rig == Enum.HumanoidRigType.R6 then
+            local Torso = Char:FindFirstChild("Torso")
+            local Neck = Torso and Torso:FindFirstChild("Neck")
+            local Head = Char:FindFirstChild("Head")
+            if not Neck or not Head then return end
+
+            if Headless then
+                -- 保存原始 C0 與顏色、透明度
+                SavedHeadData[Head] = {
+                    C0 = Neck.C0,
+                    Transparency = Head.Transparency,
+                    CanCollide = Head.CanCollide,
+                    Mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                }
+
+                -- 隱藏頭部
+                Head.Transparency = 1
+                Head.CanCollide = false
+                local mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                if mesh then mesh.MeshId = "" end
+
+                -- 移到背後 + 臉朝上
+                Neck.C0 = CFrame.new(0, 0, 2) * CFrame.Angles(math.rad(-90), 0, 0)
+
+            else
+                local data = SavedHeadData[Head]
+                if data then
+                    Neck.C0 = data.C0
+                    Head.Transparency = data.Transparency
+                    Head.CanCollide = data.CanCollide
+                    local mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                    if mesh and data.Mesh then
+                        mesh.MeshId = data.Mesh.MeshId
+                        mesh.TextureId = data.Mesh.TextureId
+                        mesh.Scale = data.Mesh.Scale
+                    end
+                end
+            end
+
+        elseif Rig == Enum.HumanoidRigType.R15 then
+            local Head = Char:FindFirstChild("Head")
+            local UpperTorso = Char:FindFirstChild("UpperTorso")
+            local Neck = UpperTorso and UpperTorso:FindFirstChild("Neck")
+            if not Head or not UpperTorso or not Neck then return end
+
+            if Headless then
+                SavedHeadData[Head] = {
+                    C0 = Neck.C0,
+                    Transparency = Head.Transparency,
+                    CanCollide = Head.CanCollide,
+                    Mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                }
+
+                Head.Transparency = 1
+                Head.CanCollide = false
+                local mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                if mesh then mesh.MeshId = "" end
+
+                -- 移到 UpperTorso 後面 + 臉朝上
+                Neck.C0 = CFrame.new(0, 0, 2) * CFrame.Angles(math.rad(-90), 0, 0)
+
+            else
+                local data = SavedHeadData[Head]
+                if data then
+                    Neck.C0 = data.C0
+                    Head.Transparency = data.Transparency
+                    Head.CanCollide = data.CanCollide
+                    local mesh = Head:FindFirstChildOfClass("SpecialMesh")
+                    if mesh and data.Mesh then
+                        mesh.MeshId = data.Mesh.MeshId
+                        mesh.TextureId = data.Mesh.TextureId
+                        mesh.Scale = data.Mesh.Scale
+                    end
+                end
             end
         end
     end
