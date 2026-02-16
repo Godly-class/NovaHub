@@ -1931,21 +1931,23 @@ UniversalTab:Toggle({
 UniversalTab:Divider()
 
 
--- ========= Roblox 服務 =========
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local TextChatService = game:GetService("TextChatService")
+
 local LP = Players.LocalPlayer
 
--- ========= 全域翻譯設定 =========
+-- ========= 全域設定 =========
 getgenv().TranslateConfig = {
-    TargetLanguage = "zh-CN",    -- 預設語言
-    AutoChatTranslate = false,   -- 聊天翻譯開關
-    AutoUITranslate = false,     -- UI翻譯開關
-    UISpeed = 3                  -- UI翻譯間隔 (秒)
+    TargetLanguage = "zh-CN",
+    AutoChatTranslate = false,
+    AutoUITranslate = false,
+    UISpeed = 3
 }
 
--- ========= 可選語言 =========
+-- ========= 語言選項 =========
 local LanguageOptions = {
     ["簡體中文"] = "zh-CN",
     ["繁體中文"] = "zh-TW",
@@ -1953,12 +1955,18 @@ local LanguageOptions = {
     ["日文"] = "ja"
 }
 
--- ========= 翻譯緩存 =========
-local TranslateCache = {} -- key = 原文 + "_" + 語言，value = 翻譯結果
+-- ========= 翻譯快取 =========
+local TranslateCache = {}
 
 -- ========= 翻譯函數 =========
 local function Translate(text)
-    local key = text .. "_" .. getgenv().TranslateConfig.TargetLanguage
+    if not text or text == "" then
+        return text
+    end
+
+    local lang = getgenv().TranslateConfig.TargetLanguage
+    local key = text .. "_" .. lang
+
     if TranslateCache[key] then
         return TranslateCache[key]
     end
@@ -1966,145 +1974,103 @@ local function Translate(text)
     local body = HttpService:JSONEncode({
         q = text,
         source = "auto",
-        target = getgenv().TranslateConfig.TargetLanguage,
+        target = lang,
         format = "text"
     })
 
-    local success, res = pcall(function()
-        return HttpService:PostAsync("https://libretranslate.com/translate", body, Enum.HttpContentType.ApplicationJson)
+    local success, result = pcall(function()
+        return HttpService:PostAsync(
+            "https://libretranslate.com/translate",
+            body,
+            Enum.HttpContentType.ApplicationJson
+        )
     end)
 
-    local translated
+    local translated = text
+
     if success then
-        local data = HttpService:JSONDecode(res)
-        translated = data.translatedText
+        local decoded = HttpService:JSONDecode(result)
+        if decoded and decoded.translatedText then
+            translated = decoded.translatedText
+        end
     else
-        warn("翻譯失敗:", res)
-        translated = text
+        warn("翻譯 API 失敗:", result)
     end
 
     TranslateCache[key] = translated
     return translated
 end
 
--- ========= Wind UI 組件 =========
+-- ========= 聊天翻譯 =========
 
--- 語言下拉
-UniversalTab:Dropdown({
-    Title = "翻譯語言",
-    Default = "簡體中文",
-    Options = {"簡體中文", "繁體中文", "英文", "日文"},
-    Callback = function(value)
-        local langCode = LanguageOptions[value]
-        if langCode then
-            getgenv().TranslateConfig.TargetLanguage = langCode
-            if _G.WindUI then
-                _G.WindUI:Notify({
-                    Title = "語言切換：" .. value,
-                    Content = "已切換翻譯語言",
-                    Duration = 3,
-                    Icon = "Translate"
-                })
-            end
-        end
+local function HandleMessage(playerName, message)
+    if not getgenv().TranslateConfig.AutoChatTranslate then
+        return
     end
-})
 
--- 聊天翻譯 Toggle
-UniversalTab:Toggle({
-    Title = "聊天翻譯",
-    Default = false,
-    Callback = function(value)
-        getgenv().TranslateConfig.AutoChatTranslate = value
+    if playerName == LP.Name then
+        return -- 不翻譯自己
     end
-})
 
--- UI翻譯 Toggle
-UniversalTab:Toggle({
-    Title = "UI翻譯",
-    Default = false,
-    Callback = function(value)
-        getgenv().TranslateConfig.AutoUITranslate = value
-    end
-})
-
--- UI翻譯間隔滑桿
-UniversalTab:Slider({
-    Title = "UI翻譯間隔（秒）",
-    Default = 3,
-    Min = 1,
-    Max = 5,
-    Callback = function(value)
-        getgenv().TranslateConfig.UISpeed = value
-    end
-})
-
--- ========= 聊天翻譯事件 =========
-Players.PlayerChatted:Connect(function(player, message)
-    if not getgenv().TranslateConfig.AutoChatTranslate then return end
     task.spawn(function()
         local translated = Translate(message)
+
         if _G.WindUI then
             _G.WindUI:Notify({
-                Title = translated,
-                Content = "自動翻譯完成！",
+                Title = playerName,
+                Content = translated,
                 Duration = 5,
                 Icon = "Translate"
             })
         end
     end)
+end
+
+-- 舊聊天系統
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        HandleMessage(player.Name, message)
+    end)
 end)
 
--- ========= UI翻譯函數 =========
+-- 新聊天系統
+if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+    TextChatService.MessageReceived:Connect(function(msg)
+        if msg.TextSource then
+            local player = Players:GetPlayerByUserId(msg.TextSource.UserId)
+            if player then
+                HandleMessage(player.Name, msg.Text)
+            end
+        end
+    end)
+end
+
+-- ========= UI 自動翻譯 =========
+
 local function AutoTranslateUI()
-    local ScreenGui = LP:WaitForChild("PlayerGui"):WaitForChild("ScreenGui") -- 改成你的 GUI 名稱
-    for _, obj in pairs(ScreenGui:GetDescendants()) do
+    local playerGui = LP:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+
+    for _, obj in pairs(playerGui:GetDescendants()) do
         if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-            local targetName = obj.Name .. "_" .. (getgenv().TranslateConfig.TargetLanguage:sub(4,5))
-            local translatedBox = ScreenGui:FindFirstChild(targetName, true)
-            if translatedBox and (translatedBox:IsA("TextLabel") or translatedBox:IsA("TextButton") or translatedBox:IsA("TextBox")) then
-                task.spawn(function()
-                    translatedBox.Text = Translate(obj.Text)
-                end)
+            if obj.Text and obj.Text ~= "" then
+                obj.Text = Translate(obj.Text)
             end
         end
     end
 end
 
--- ========= 循環UI翻譯 =========
 RunService.Heartbeat:Connect(function()
-    if getgenv().TranslateConfig.AutoUITranslate then
-        local interval = getgenv().TranslateConfig.UISpeed
-        if not getgenv()._LastUITranslate or tick() - getgenv()._LastUITranslate >= interval then
-            getgenv()._LastUITranslate = tick()
-            AutoTranslateUI()
-        end
-    end
-end)        
-
-    local success, res = pcall(function()
-        return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
-    end)
-
-    local translated
-    if success then
-        local data = HttpService:JSONDecode(res)
-        translated = data.translatedText
-    else
-        warn("翻譯失敗:", res)
-        translated = text
+    if not getgenv().TranslateConfig.AutoUITranslate then
+        return
     end
 
-    -- 存入緩存
-    TranslateCache[key] = translated
-    return translated
-
-
--- ==== 聊天翻譯 ====
-Players.PlayerChatted:Connect(function(player, message)
-    if not getgenv().TranslateConfig.AutoChatTranslate then return end
-    task.spawn(function()
-        local translated = Translate(message)
+    local interval = getgenv().TranslateConfig.UISpeed
+    if not getgenv()._LastUITranslate or tick() - getgenv()._LastUITranslate >= interval then
+        getgenv()._LastUITranslate = tick()
+        AutoTranslateUI()
+    end
+end)
 
 -- ESPTab
 
