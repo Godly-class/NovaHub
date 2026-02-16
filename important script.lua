@@ -2870,8 +2870,8 @@ NTab:Toggle({
 })
 
 NTab:Button({
-        Title = "黑洞控制器"
-        Desc = "不是我做的但是我是漢化"
+        Title = "黑洞控制器",
+        Desc = "不是我做的但是我是漢化",
         Callback = function()
             loadstring(game:HttpGet("https://pastefy.app/2C3cRXXp/raw"))()
             task.wait(1)
