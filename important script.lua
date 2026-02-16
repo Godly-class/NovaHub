@@ -1958,14 +1958,14 @@ local LanguageOptions = {
 -- ========= 翻譯快取 =========
 local TranslateCache = {}
 
--- ========= 翻譯函數 =========
+-- ========= 翻譯函數（只翻外語） =========
 local function Translate(text)
     if not text or text == "" then
         return text
     end
 
-    local lang = getgenv().TranslateConfig.TargetLanguage
-    local key = text .. "_" .. lang
+    local target = getgenv().TranslateConfig.TargetLanguage
+    local key = text .. "_" .. target
 
     if TranslateCache[key] then
         return TranslateCache[key]
@@ -1974,7 +1974,7 @@ local function Translate(text)
     local body = HttpService:JSONEncode({
         q = text,
         source = "auto",
-        target = lang,
+        target = target,
         format = "text"
     })
 
@@ -1986,20 +1986,74 @@ local function Translate(text)
         )
     end)
 
-    local translated = text
-
-    if success then
-        local decoded = HttpService:JSONDecode(result)
-        if decoded and decoded.translatedText then
-            translated = decoded.translatedText
-        end
-    else
-        warn("翻譯 API 失敗:", result)
+    if not success then
+        return text
     end
 
+    local decoded = HttpService:JSONDecode(result)
+
+    -- 如果偵測語言等於目標語言 → 不翻
+    if decoded.detectedLanguage 
+        and decoded.detectedLanguage.language == target then
+        TranslateCache[key] = text
+        return text
+    end
+
+    local translated = decoded.translatedText or text
     TranslateCache[key] = translated
+
     return translated
 end
+
+-- ========= Wind UI =========
+
+UniversalTab:Dropdown({
+    Title = "翻譯語言",
+    Default = "簡體中文",
+    Options = {"簡體中文", "繁體中文", "英文", "日文"},
+    Callback = function(value)
+        local langCode = LanguageOptions[value]
+        if langCode then
+            getgenv().TranslateConfig.TargetLanguage = langCode
+            TranslateCache = {} -- 清空快取
+
+            if _G.WindUI then
+                _G.WindUI:Notify({
+                    Title = "語言切換：" .. value,
+                    Content = "翻譯語言已更新",
+                    Duration = 3,
+                    Icon = "Translate"
+                })
+            end
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "聊天翻譯",
+    Default = false,
+    Callback = function(value)
+        getgenv().TranslateConfig.AutoChatTranslate = value
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "UI翻譯",
+    Default = false,
+    Callback = function(value)
+        getgenv().TranslateConfig.AutoUITranslate = value
+    end
+})
+
+UniversalTab:Slider({
+    Title = "UI翻譯間隔（秒）",
+    Default = 3,
+    Min = 1,
+    Max = 5,
+    Callback = function(value)
+        getgenv().TranslateConfig.UISpeed = value
+    end
+})
 
 -- ========= 聊天翻譯 =========
 
@@ -2009,19 +2063,21 @@ local function HandleMessage(playerName, message)
     end
 
     if playerName == LP.Name then
-        return -- 不翻譯自己
+        return
     end
 
     task.spawn(function()
         local translated = Translate(message)
 
-        if _G.WindUI then
-            _G.WindUI:Notify({
-                Title = playerName,
-                Content = translated,
-                Duration = 5,
-                Icon = "Translate"
-            })
+        if translated ~= message then
+            if _G.WindUI then
+                _G.WindUI:Notify({
+                    Title = playerName,
+                    Content = translated,
+                    Duration = 5,
+                    Icon = "Translate"
+                })
+            end
         end
     end)
 end
@@ -2054,7 +2110,10 @@ local function AutoTranslateUI()
     for _, obj in pairs(playerGui:GetDescendants()) do
         if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
             if obj.Text and obj.Text ~= "" then
-                obj.Text = Translate(obj.Text)
+                local translated = Translate(obj.Text)
+                if translated ~= obj.Text then
+                    obj.Text = translated
+                end
             end
         end
     end
@@ -2066,7 +2125,10 @@ RunService.Heartbeat:Connect(function()
     end
 
     local interval = getgenv().TranslateConfig.UISpeed
-    if not getgenv()._LastUITranslate or tick() - getgenv()._LastUITranslate >= interval then
+
+    if not getgenv()._LastUITranslate 
+        or tick() - getgenv()._LastUITranslate >= interval then
+
         getgenv()._LastUITranslate = tick()
         AutoTranslateUI()
     end
