@@ -122,6 +122,84 @@ local function showNotification(title, content, duration, icon)
 
 end
 
+Window:EditOpenButton({
+    Title = "Dev Nova",
+    Icon = "monitor",
+    CornerRadius = UDim.new(0,16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new( -- gradient
+        Color3.fromHex("FF0F7B"), 
+        Color3.fromHex("F89B29")
+    ),
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
+})
+
+Window:Tag({
+    Title = "Dev Version",
+    Icon = "github",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 0, -- from 0 to 13
+})
+
+--// Services
+local Stats = game:GetService("Stats")
+local RunService = game:GetService("RunService")
+
+--// ===== FPS 計算 =====
+local fps = 0
+local frames = 0
+local lastTime = tick()
+
+RunService.RenderStepped:Connect(function()
+    frames += 1
+    if tick() - lastTime >= 1 then
+        fps = frames
+        frames = 0
+        lastTime = tick()
+    end
+end)
+
+--// ===== 建立 Tag =====
+local pingTag = Window:Tag({
+    Title = "Ping: 0",
+    Icon = "github",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 0,
+})
+
+local fpsTag = Window:Tag({
+    Title = "FPS: 0",
+    Icon = "github",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 0,
+})
+
+--// ===== 即時更新（每 0.5 秒）=====
+task.spawn(function()
+    while true do
+        local ping = 0
+
+        pcall(function()
+            ping = math.floor(
+                Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+            )
+        end)
+
+        -- Wind 通常支援 SetTitle
+        if pingTag.SetTitle then
+            pingTag:SetTitle("Ping: " .. ping)
+        end
+
+        if fpsTag.SetTitle then
+            fpsTag:SetTitle("FPS: " .. fps)
+        end
+
+        task.wait(0.5)
+    end
+end)
+
 -- 載入腳本函數
 
 local function loadScript(scriptName, scriptUrl, description, gameName)
