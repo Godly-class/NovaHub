@@ -139,7 +139,7 @@ Window:EditOpenButton({
 Window:Tag({
     Title = "Dev Version",
     Icon = "github",
-    Color = Color3.fromHex("#30ff6a"),
+    Color = Color3.fromHex("#6a5cff"),
     Radius = 0, -- from 0 to 13
 })
 
@@ -165,14 +165,14 @@ end)
 local pingTag = Window:Tag({
     Title = "Ping: 0",
     Icon = "github",
-    Color = Color3.fromHex("#30ff6a"),
+    Color = Color3.fromHex("#5cecff"),
     Radius = 0,
 })
 
 local fpsTag = Window:Tag({
     Title = "FPS: 0",
     Icon = "github",
-    Color = Color3.fromHex("#30ff6a"),
+    Color = Color3.fromHex("#5cff90"),
     Radius = 0,
 })
 
