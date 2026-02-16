@@ -1,0 +1,1002 @@
+-- =============================================
+-- Idiot's Legit & Rage Hub - WindUI Version
+-- =============================================
+
+repeat task.wait() until game:IsLoaded()
+
+-- WindUI 載入（最新 releases）
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- 服務
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- 反 Adonis & DTXC1 bypass
+local function isAdonisAC(tab) 
+    return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
+end
+
+for _,v in next,getgc(true) do 
+    if typeof(v)=="table" and isAdonisAC(v) then 
+        for i,f in next,v do 
+            if rawequal(i,"Detected") then 
+                local old = hookfunction(f,function(action,info,crash)
+                    if rawequal(action,"_") and rawequal(info,"_") and rawequal(crash,false) then 
+                        return old(action,info,crash) 
+                    end 
+                    return task.wait(9e9) 
+                end) 
+                warn("bypassed Adonis Detected")
+                break 
+            end 
+        end 
+    end 
+end
+
+for _,v in pairs(getgc(true)) do 
+    if type(v)=="table" then 
+        local func=rawget(v,"DTXC1") 
+        if type(func)=="function" then 
+            hookfunction(func,function() return end) 
+            warn("bypassed DTXC1")
+            break 
+        end 
+    end 
+end
+
+-- 輔助表格函數
+local TargetList = {}
+local Whitelist = {}
+
+local function tableContains(t, value)
+    for _, v in ipairs(t) do if v == value then return true end end
+    return false
+end
+
+local function tableRemove(t, value)
+    for i, v in ipairs(t) do
+        if v == value then table.remove(t, i) return true end
+    end
+    return false
+end
+
+-- Legit Aimbot 模組
+local LegitAimbotModule = {
+    Enabled = false,
+    Settings = {
+        FOV = 120,
+        Smoothness = 40,
+        VisibleCheck = true,
+        ForcefieldCheck = true,
+        DownedCheck = true,
+        DiedCheck = true,
+        TeamCheck = true,
+        AimKey = Enum.KeyCode.LeftAlt,
+        UseKeybind = true
+    },
+    ArmChams = {
+        Enabled = false,
+        OriginalTransparency = {},
+        OriginalMaterial = {},
+        TransparencyValue = 0.5
+    },
+    ItemsChams = {
+        Enabled = false,
+        OriginalData = {},
+        TransparencyValue = 0.5
+    },
+    Connection = nil
+}
+
+-- Ragebot Config
+local ConfigTable = {
+    Ragebot = {
+        Enabled = false,
+        RapidFire = false,
+        FireRate = 30,
+        Prediction = true,
+        PredictionAmount = 0.12,
+        TeamCheck = false,
+        VisibilityCheck = true,
+        Wallbang = true,
+        Tracers = true,
+        TracerColor = Color3.fromRGB(255, 0, 0),
+        TracerWidth = 1,
+        TracerLifetime = 3,
+        ShootRange = 15,
+        HitRange = 15,
+        HitNotify = true,
+        AutoReload = true,
+        HitSound = true,
+        HitColor = Color3.fromRGB(255, 182, 193),
+        UseTargetList = true,
+        UseWhitelist = true,
+        HitNotifyDuration = 5,
+        LowHealthCheck = false,
+        SelectedHitSound = "Skeet",
+        FriendCheck = false,
+        MaxTarget = 0,
+        TracerTexture = "rbxassetid://7136858729"
+    }
+}
+
+-- 下面繼續第二段（等你說「下一段」或確認沒問題再發）
+-- =============================================
+-- Ragebot 相關函數（接續第一段）
+-- =============================================
+
+local lastShotTime = 0
+local cachedBestPositions = {shootPos = nil, hitPos = nil, target = nil}
+local hitNotifications = {}
+local notificationYOffset = 5
+local MAX_VISIBLE_NOTIFICATIONS = 15
+
+local function getCurrentTool()
+    if LocalPlayer.Character then 
+        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do 
+            if tool:IsA("Tool") then 
+                return tool 
+            end 
+        end 
+    end
+    return nil
+end
+
+local instantReloadConnections = {}
+local characterAddedConnection = nil
+
+local function autoReload()
+    if not ConfigTable.Ragebot.AutoReload then
+        for _,conn in pairs(instantReloadConnections) do 
+            if conn then conn:Disconnect() end 
+        end
+        instantReloadConnections = {}
+        if characterAddedConnection then 
+            characterAddedConnection:Disconnect() 
+            characterAddedConnection = nil 
+        end
+        return
+    end
+    
+    local gunR_remote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("GNX_R")
+    local me = LocalPlayer
+    
+    local function setupToolListeners(toolObj)
+        if not toolObj or not toolObj:FindFirstChild("IsGun") then return end
+        
+        local values = toolObj:FindFirstChild("Values")
+        if not values then return end
+        
+        local ammo = values:FindFirstChild("SERVER_Ammo")
+        local storedAmmo = values:FindFirstChild("SERVER_StoredAmmo")
+        if not ammo or not storedAmmo then return end
+        
+        local conn1 = storedAmmo:GetPropertyChangedSignal("Value"):Connect(function()
+            if ConfigTable.Ragebot.AutoReload then 
+                gunR_remote:FireServer(tick(), "KLWE89U0", toolObj) 
+            end
+        end)
+        
+        if storedAmmo.Value \~= 0 then 
+            gunR_remote:FireServer(tick(), "KLWE89U0", toolObj) 
+        end
+        
+        local conn2 = ammo:GetPropertyChangedSignal("Value"):Connect(function()
+            if ConfigTable.Ragebot.AutoReload and storedAmmo.Value \~= 0 then 
+                gunR_remote:FireServer(tick(), "KLWE89U0", toolObj) 
+            end
+        end)
+        
+        table.insert(instantReloadConnections, conn1)
+        table.insert(instantReloadConnections, conn2)
+    end
+    
+    local char = me.Character
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then setupToolListeners(tool) end
+        
+        local conn3 = char.ChildAdded:Connect(function(obj) 
+            if obj:IsA("Tool") then setupToolListeners(obj) end
+        end)
+        table.insert(instantReloadConnections, conn3)
+    end
+    
+    characterAddedConnection = me.CharacterAdded:Connect(function(charr)
+        repeat task.wait() until charr and charr.Parent
+        local conn4 = charr.ChildAdded:Connect(function(obj) 
+            if obj:IsA("Tool") then setupToolListeners(obj) end
+        end)
+        table.insert(instantReloadConnections, conn4)
+    end)
+end
+
+local function canSeeTarget(targetPart)
+    if not ConfigTable.Ragebot.VisibilityCheck then return true end
+    local localHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+    if not localHead then return false end
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    
+    local startPos = localHead.Position
+    local endPos = targetPart.Position
+    local direction = (endPos - startPos)
+    local distance = direction.Magnitude
+    
+    local raycastResult = Workspace:Raycast(startPos, direction.Unit * distance, raycastParams)
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        if hitPart and hitPart.CanCollide then
+            local model = hitPart:FindFirstAncestorOfClass("Model")
+            if model then
+                local humanoid = model:FindFirstChild("Humanoid")
+                if humanoid then
+                    local targetPlayer = Players:GetPlayerFromCharacter(model)
+                    if targetPlayer then return true end
+                end
+            end
+            return false
+        end
+    end
+    return true
+end
+
+local function checkClearPath(startPos, endPos)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    local direction = (endPos - startPos)
+    local distance = direction.Magnitude
+    local raycastResult = Workspace:Raycast(startPos, direction.Unit * distance, raycastParams)
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        if hitPart and hitPart.CanCollide then
+            local model = hitPart:FindFirstAncestorOfClass("Model")
+            if model then
+                local humanoid = model:FindFirstChild("Humanoid")
+                if not humanoid then return false end
+            else return false end
+        end
+    end
+    return true
+end
+
+local function getClosestTarget()
+    local character = LocalPlayer.Character
+    local localHead = character and character:FindFirstChild("Head")
+    if not localHead then return nil end
+
+    local closest = nil
+    local shortestDistance = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        
+        local isWhitelisted = tableContains(Whitelist, player.Name)
+        if ConfigTable.Ragebot.FriendCheck and LocalPlayer:IsFriendsWith(player.UserId) then
+            isWhitelisted = true
+        end
+        
+        if ConfigTable.Ragebot.UseWhitelist and isWhitelisted then continue end
+        if ConfigTable.Ragebot.UseTargetList and not tableContains(TargetList, player.Name) then continue end
+        if ConfigTable.Ragebot.TeamCheck and player.Team == LocalPlayer.Team then continue end
+        
+        local char = player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        local head = char and char:FindFirstChild("Head")
+        
+        if hum and head and hum.Health > 0 then
+            if char:FindFirstChildOfClass("ForceField") then continue end
+            if ConfigTable.Ragebot.LowHealthCheck and hum.Health < 15 then continue end
+            
+            local distance = (head.Position - localHead.Position).Magnitude
+            if distance < shortestDistance then
+                if canSeeTarget(head) then
+                    closest = head
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function wallbang()
+    local localHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+    if not localHead then return nil, nil, false end
+    
+    local target = getClosestTarget()
+    if not target then 
+        cachedBestPositions = {shootPos = nil, hitPos = nil, target = nil}
+        return nil, nil, false
+    end
+    
+    local startPos = localHead.Position
+    local targetPos = target.Position
+    
+    if not ConfigTable.Ragebot.Wallbang then
+        cachedBestPositions = {shootPos = startPos, hitPos = targetPos, target = target}
+        return startPos, targetPos, false
+    end
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    
+    local function findSmartBounce()
+        local directions = {
+            Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
+            Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
+            Vector3.new(0, 0, 1), Vector3.new(0, 0, -1),
+            Vector3.new(1, 1, 0), Vector3.new(-1, 1, 0)
+        }
+        
+        for _, dir in ipairs(directions) do
+            local bouncePos = startPos + dir * (ConfigTable.Ragebot.ShootRange * 0.8)
+            
+            if checkClearPath(startPos, bouncePos) then
+                local rayToTarget = Workspace:Raycast(bouncePos, (targetPos - bouncePos).Unit * (targetPos - bouncePos).Magnitude, raycastParams)
+                if not rayToTarget then
+                    return bouncePos, targetPos
+                end
+            end
+        end
+        
+        return nil, nil
+    end
+    
+    local function findAngleOffset()
+        local minAngle = -30
+        local maxAngle = 30
+        local steps = 120
+        
+        for i = 1, steps do
+            local angle = minAngle + (maxAngle - minAngle) * (i / steps)
+            local radians = math.rad(angle)
+            
+            local direction = (targetPos - startPos).Unit
+            local right = direction:Cross(Vector3.new(0, 1, 0)).Unit
+            local up = direction:Cross(right).Unit
+            
+            local offsetDir = right * math.cos(radians) + up * math.sin(radians)
+            local offsetDistance = ConfigTable.Ragebot.ShootRange * 0.6
+            
+            local shootPos = startPos + offsetDir * offsetDistance
+            
+            if checkClearPath(startPos, shootPos) then
+                local rayToTarget = Workspace:Raycast(shootPos, (targetPos - shootPos).Unit * (targetPos - shootPos).Magnitude, raycastParams)
+                if not rayToTarget then
+                    return shootPos, targetPos
+                end
+            end
+        end
+        
+        return nil, nil
+    end
+    
+    local function findQuickPath()
+        for i = 1, 120 do
+            local shootX = startPos.X + math.random(-ConfigTable.Ragebot.ShootRange, ConfigTable.Ragebot.ShootRange)
+            local shootY = startPos.Y + math.random(-ConfigTable.Ragebot.ShootRange, ConfigTable.Ragebot.ShootRange)
+            local shootZ = startPos.Z + math.random(-ConfigTable.Ragebot.ShootRange, ConfigTable.Ragebot.ShootRange)
+            
+            local shootPos = Vector3.new(shootX, shootY, shootZ)
+            
+            local hitX = targetPos.X + math.random(-ConfigTable.Ragebot.HitRange, ConfigTable.Ragebot.HitRange)
+            local hitY = targetPos.Y + math.random(-ConfigTable.Ragebot.HitRange, ConfigTable.Ragebot.HitRange)
+            local hitZ = targetPos.Z + math.random(-ConfigTable.Ragebot.HitRange, ConfigTable.Ragebot.HitRange)
+            
+            local hitPos = Vector3.new(hitX, hitY, hitZ)
+            
+            if checkClearPath(startPos, shootPos) and checkClearPath(shootPos, hitPos) then
+                local finalRay = Workspace:Raycast(shootPos, (hitPos - shootPos).Unit * (hitPos - shootPos).Magnitude, raycastParams)
+                if not finalRay then
+                    return shootPos, hitPos
+                end
+            end
+        end
+        
+        return nil, nil
+    end
+    
+    local shootPos, hitPos
+    
+    if math.random(1, 100) <= 40 then
+        shootPos, hitPos = findSmartBounce()
+    end
+    
+    if not shootPos then
+        shootPos, hitPos = findAngleOffset()
+    end
+    
+    if not shootPos then
+        shootPos, hitPos = findQuickPath()
+    end
+    
+    return shootPos, hitPos, false
+end
+
+-- 這段結束（約 280 行），包含 wallbang 所有子函數
+-- 下一段會是 createHitNotification、playHitSound、createTracer、shootAtTarget + coroutine 射擊循環
+-- =============================================
+-- WindUI UI 建立 - Ragebot Tab（接續第二段）
+-- =============================================
+
+-- 建立主視窗（只建立一次）
+local Window = WindUI:CreateWindow({
+    Title = "NovaHub.gg",
+    Icon = "crosshair",  -- lucide.dev 可找其他 icon 如 "target", "zap"
+    Author = "Idiot",
+    Folder = "IdiotCheatConfig",  -- 設定檔自動存這裡
+    Size = UDim2.fromOffset(620, 520),
+    Theme = "Dark",
+    Resizable = true,
+    Minimizable = true,
+})
+
+-- Ragebot Tab
+local RageTab = Window:Tab({
+    Title = "Ragebot",
+    Icon = "crosshair"
+})
+
+-- Main Section
+local MainSect = RageTab:Section({ Title = "Main", Opened = true })
+MainSect:Toggle({
+    Title = "Enabled",
+    Default = false,
+    Callback = function(v) 
+        ConfigTable.Ragebot.Enabled = v 
+    end
+})
+MainSect:Toggle({
+    Title = "Rapid Fire",
+    Default = false,
+    Callback = function(v) 
+        ConfigTable.Ragebot.RapidFire = v 
+    end
+})
+MainSect:Toggle({
+    Title = "Auto Reload",
+    Default = true,
+    Callback = function(v) 
+        ConfigTable.Ragebot.AutoReload = v 
+        autoReload()  -- 即時套用
+    end
+})
+MainSect:Slider({
+    Title = "Fire Rate",
+    Min = 1,
+    Max = 1000,
+    Default = 30,
+    Rounding = 0,
+    Callback = function(v) 
+        ConfigTable.Ragebot.FireRate = v 
+    end
+})
+MainSect:Keybind({
+    Title = "Activation Key",
+    Default = Enum.KeyCode.LeftAlt,
+    Callback = function(key) 
+        -- 可選：如果想動態改 key，可在這裡更新變數
+        -- 你的原腳本沒用，可留空或 print(key)
+    end
+})
+
+-- Aim Settings Section
+local AimSect = RageTab:Section({ Title = "Aim Settings", Opened = false })
+AimSect:Toggle({
+    Title = "Prediction",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.Prediction = v end
+})
+AimSect:Slider({
+    Title = "Prediction Amount",
+    Min = 0.05,
+    Max = 0.3,
+    Default = 0.12,
+    Rounding = 3,
+    Callback = function(v) ConfigTable.Ragebot.PredictionAmount = v end
+})
+AimSect:Toggle({
+    Title = "Wallbang",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.Wallbang = v end
+})
+AimSect:Slider({
+    Title = "Shoot Range",
+    Min = 1,
+    Max = 30,
+    Default = 15,
+    Rounding = 1,
+    Callback = function(v) ConfigTable.Ragebot.ShootRange = v end
+})
+AimSect:Slider({
+    Title = "Hit Range",
+    Min = 1,
+    Max = 30,
+    Default = 15,
+    Rounding = 1,
+    Callback = function(v) ConfigTable.Ragebot.HitRange = v end
+})
+AimSect:Slider({
+    Title = "Max Targets",
+    Min = 0,
+    Max = 10,
+    Default = 0,
+    Rounding = 0,
+    Callback = function(v) ConfigTable.Ragebot.MaxTarget = v end
+})
+
+-- Targeting Section
+local TargetSect = RageTab:Section({ Title = "Targeting", Opened = false })
+TargetSect:Toggle({
+    Title = "Team Check",
+    Default = false,
+    Callback = function(v) ConfigTable.Ragebot.TeamCheck = v end
+})
+TargetSect:Toggle({
+    Title = "Visibility Check",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.VisibilityCheck = v end
+})
+TargetSect:Toggle({
+    Title = "Friend Check",
+    Default = false,
+    Callback = function(v) ConfigTable.Ragebot.FriendCheck = v end
+})
+TargetSect:Toggle({
+    Title = "Low Health Check",
+    Default = false,
+    Callback = function(v) ConfigTable.Ragebot.LowHealthCheck = v end
+})
+TargetSect:Toggle({
+    Title = "Use Target List",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.UseTargetList = v end
+})
+TargetSect:Toggle({
+    Title = "Use Whitelist",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.UseWhitelist = v end
+})
+
+-- Visuals Section
+local VisualSect = RageTab:Section({ Title = "Visuals", Opened = false })
+VisualSect:Toggle({
+    Title = "Tracers",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.Tracers = v end
+})
+VisualSect:Colorpicker({
+    Title = "Tracer Color",
+    Default = Color3.fromRGB(255, 0, 0),
+    Callback = function(c) ConfigTable.Ragebot.TracerColor = c end
+})
+VisualSect:Slider({
+    Title = "Tracer Width",
+    Min = 0.1,
+    Max = 5,
+    Default = 1,
+    Rounding = 2,
+    Callback = function(v) ConfigTable.Ragebot.TracerWidth = v end
+})
+VisualSect:Slider({
+    Title = "Tracer Lifetime",
+    Min = 0.5,
+    Max = 10,
+    Default = 3,
+    Rounding = 2,
+    Callback = function(v) ConfigTable.Ragebot.TracerLifetime = v end
+})
+VisualSect:Dropdown({
+    Title = "Tracer Texture",
+    Items = {"Default", "Alternative", "Laser", "Rainbow"},
+    Default = "Default",
+    Callback = function(v) ConfigTable.Ragebot.TracerTexture = v end
+})
+VisualSect:Toggle({
+    Title = "Hit Notify",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.HitNotify = v end
+})
+VisualSect:Colorpicker({
+    Title = "Hit Color",
+    Default = Color3.fromRGB(255, 182, 193),
+    Callback = function(c) ConfigTable.Ragebot.HitColor = c end
+})
+VisualSect:Slider({
+    Title = "Notify Duration",
+    Min = 1,
+    Max = 10,
+    Default = 5,
+    Rounding = 1,
+    Callback = function(v) ConfigTable.Ragebot.HitNotifyDuration = v end
+})
+VisualSect:Toggle({
+    Title = "Hit Sound",
+    Default = true,
+    Callback = function(v) ConfigTable.Ragebot.HitSound = v end
+})
+VisualSect:Dropdown({
+    Title = "Hit Sound",
+    Items = {"Skeet", "Neverlose", "Fatality", "Bameware", "Bell", "Bubble", "Pop", "Rust", "Sans", "Minecraft", "xp"},
+    Default = "Skeet",
+    Callback = function(v) ConfigTable.Ragebot.SelectedHitSound = v end
+})
+
+-- Management Section（用 Textbox + Button 替代原 Listbox）
+local ManageSect = RageTab:Section({ Title = "Management", Opened = false })
+local selectedPlayerName = ""
+ManageSect:Textbox({
+    Title = "Player Name",
+    Placeholder = "輸入玩家名稱後按 Add...",
+    Callback = function(text) 
+        selectedPlayerName = text 
+    end
+})
+ManageSect:Button({
+    Title = "Add to Target List",
+    Callback = function()
+        local name = selectedPlayerName
+        if name and name \~= "" then
+            for i, v in ipairs(Whitelist) do 
+                if v == name then table.remove(Whitelist, i) break end 
+            end
+            if not tableContains(TargetList, name) then 
+                table.insert(TargetList, name) 
+                WindUI:Notify({Title = "Added", Content = name .. " 已加入 Target List"})
+            end
+        end
+    end
+})
+ManageSect:Button({
+    Title = "Add to Whitelist",
+    Callback = function()
+        local name = selectedPlayerName
+        if name and name \~= "" then
+            for i, v in ipairs(TargetList) do 
+                if v == name then table.remove(TargetList, i) break end 
+            end
+            if not tableContains(Whitelist, name) then 
+                table.insert(Whitelist, name) 
+                WindUI:Notify({Title = "Added", Content = name .. " 已加入 Whitelist"})
+            end
+        end
+    end
+})
+ManageSect:Button({
+    Title = "Clear All Lists",
+    Callback = function()
+        table.clear(TargetList)
+        table.clear(Whitelist)
+        WindUI:Notify({Title = "Cleared", Content = "Target List & Whitelist 已全部清除"})
+    end
+})
+
+-- 這段結束（約 280 行），包含完整 Ragebot UI
+-- 下一段會是 Misc Tab + Legit Aimbot Tab + 最後初始化與 Quick Fly 按鈕
+-- =============================================
+-- Misc Tab + Legit Aimbot Tab + 初始化（最後一段）
+-- =============================================
+
+-- Misc Tab
+local MiscTab = Window:Tab({
+    Title = "Misc",
+    Icon = "settings"
+})
+
+-- Movement Section
+local MoveSect = MiscTab:Section({ Title = "Movement", Opened = true })
+MoveSect:Toggle({
+    Title = "Speed",
+    Default = false,
+    Callback = function(v)
+        speedEnabled = v
+        if v then enableSpeed() else disableSpeed() end
+    end
+})
+MoveSect:Slider({
+    Title = "Speed Value",
+    Min = 16,
+    Max = 200,
+    Default = 50,
+    Rounding = 0,
+    Callback = function(v) speedValue = v end
+})
+MoveSect:Keybind({
+    Title = "Speed Key",
+    Default = Enum.KeyCode.X,
+    Callback = function() end  -- 可加 toggle 邏輯如果需要
+})
+
+MoveSect:Toggle({
+    Title = "Fly",
+    Default = false,
+    Callback = function(v)
+        flyEnabled = v
+        if v then startFlying() else disableFlying() end
+    end
+})
+MoveSect:Slider({
+    Title = "Fly Speed",
+    Min = 10,
+    Max = 200,
+    Default = 50,
+    Rounding = 0,
+    Callback = function(v) flySpeed = v end
+})
+MoveSect:Keybind({
+    Title = "Fly Key",
+    Default = Enum.KeyCode.F,
+    Callback = function() end
+})
+
+MoveSect:Toggle({
+    Title = "Jump Power",
+    Default = false,
+    Callback = function(v)
+        jumpPowerEnabled = v
+        if v then enableJumpPower() else disableJumpPower() end
+    end
+})
+MoveSect:Slider({
+    Title = "Jump Value",
+    Min = 50,
+    Max = 300,
+    Default = 100,
+    Rounding = 0,
+    Callback = function(v) jumpPowerValue = v end
+})
+
+-- World Section
+local WorldSect = MiscTab:Section({ Title = "World", Opened = false })
+WorldSect:Toggle({
+    Title = "Force Time",
+    Default = false,
+    Callback = function(v)
+        forceTimeEnabled = v
+        if v then enableForceTime() else disableForceTime() end
+    end
+})
+WorldSect:Slider({
+    Title = "Time (hr)",
+    Min = 0,
+    Max = 24,
+    Default = 12,
+    Rounding = 0,
+    Callback = function(v)
+        forceTimeValue = v
+        if forceTimeEnabled then
+            Lighting.ClockTime = v
+            Lighting.TimeOfDay = string.format("%02d:00:00", v)
+        end
+    end
+})
+
+-- Tools & Exploits Section
+local ToolsSect = MiscTab:Section({ Title = "Tools & Exploits", Opened = false })
+ToolsSect:Toggle({
+    Title = "Loop FOV",
+    Default = false,
+    Callback = function(v)
+        loopFOVEnabled = v
+        if v then enableLoopFOV() else disableLoopFOV() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "Inf Stamina",
+    Default = false,
+    Callback = function(v)
+        infStaminaEnabled = v
+        if v then enableInfStamina() else disableInfStamina() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "No Fall Damage",
+    Default = false,
+    Callback = function(v)
+        noFallEnabled = v
+        if v then enableNoFallDmg() else disableNoFallDmg() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "No Fail Lockpick",
+    Default = false,
+    Callback = function(v)
+        lockpickEnabled = v
+        if v then enableLockpick() else disableLockpick() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "Instant Prompt",
+    Default = false,
+    Callback = function(v)
+        instantPromptEnabled = v
+        if v then enableInstantPrompt() else disableInstantPrompt() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "Auto Door",
+    Default = false,
+    Callback = function(v)
+        autoDoorEnabled = v
+        if v then enableAutoDoor() else disableAutoDoor() end
+    end
+})
+ToolsSect:Toggle({
+    Title = "Hide Head",
+    Default = false,
+    Callback = function(v)
+        hideHeadEnabled = v
+        updateHideHeadHook()
+    end
+})
+ToolsSect:Toggle({
+    Title = "Hands Up",
+    Default = false,
+    Callback = function(v)
+        State.Enabled = v
+        if v then
+            if not State.Connection then
+                State.Connection = RunService.RenderStepped:Connect(onStepped)
+            end
+        else
+            if State.Connection then
+                State.Connection:Disconnect()
+                State.Connection = nil
+            end
+            cleanup()
+            updateHook()
+        end
+    end
+})
+
+-- Legit Aimbot Tab（根據你第一段模組補上常見 UI）
+local LegitTab = Window:Tab({
+    Title = "Legit Aimbot",
+    Icon = "target"
+})
+
+local LegitMainSect = LegitTab:Section({ Title = "Main", Opened = true })
+LegitMainSect:Toggle({
+    Title = "Enabled",
+    Default = false,
+    Callback = function(v) 
+        LegitAimbotModule.Enabled = v 
+        -- 如果有 Connection，可在這裡 Connect/Disconnect
+    end
+})
+LegitMainSect:Keybind({
+    Title = "Aim Key",
+    Default = Enum.KeyCode.LeftAlt,
+    Callback = function(key) 
+        LegitAimbotModule.Settings.AimKey = key 
+    end
+})
+LegitMainSect:Toggle({
+    Title = "Use Keybind",
+    Default = true,
+    Callback = function(v) LegitAimbotModule.Settings.UseKeybind = v end
+})
+
+local LegitChecksSect = LegitTab:Section({ Title = "Checks", Opened = false })
+LegitChecksSect:Toggle({ Title = "Visible Check", Default = true, Callback = function(v) LegitAimbotModule.Settings.VisibleCheck = v end })
+LegitChecksSect:Toggle({ Title = "Team Check", Default = true, Callback = function(v) LegitAimbotModule.Settings.TeamCheck = v end })
+LegitChecksSect:Toggle({ Title = "Forcefield Check", Default = true, Callback = function(v) LegitAimbotModule.Settings.ForcefieldCheck = v end })
+LegitChecksSect:Toggle({ Title = "Downed Check", Default = true, Callback = function(v) LegitAimbotModule.Settings.DownedCheck = v end })
+LegitChecksSect:Toggle({ Title = "Died Check", Default = true, Callback = function(v) LegitAimbotModule.Settings.DiedCheck = v end })
+
+local LegitAimSect = LegitTab:Section({ Title = "Aiming", Opened = false })
+LegitAimSect:Slider({
+    Title = "FOV",
+    Min = 30,
+    Max = 500,
+    Default = 120,
+    Rounding = 0,
+    Callback = function(v) LegitAimbotModule.Settings.FOV = v end
+})
+LegitAimSect:Slider({
+    Title = "Smoothness",
+    Min = 1,
+    Max = 100,
+    Default = 40,
+    Rounding = 0,
+    Callback = function(v) LegitAimbotModule.Settings.Smoothness = v end
+})
+
+local LegitChamsSect = LegitTab:Section({ Title = "Chams", Opened = false })
+LegitChamsSect:Toggle({
+    Title = "Arm Chams",
+    Default = false,
+    Callback = function(v) 
+        LegitAimbotModule.ArmChams.Enabled = v 
+        UpdateArms()  -- 即時更新
+    end
+})
+LegitChamsSect:Slider({
+    Title = "Arm Transparency",
+    Min = 0,
+    Max = 1,
+    Default = 0.5,
+    Rounding = 2,
+    Callback = function(v) 
+        LegitAimbotModule.ArmChams.TransparencyValue = v 
+        UpdateArms()
+    end
+})
+LegitChamsSect:Toggle({
+    Title = "Items Chams",
+    Default = false,
+    Callback = function(v) 
+        LegitAimbotModule.ItemsChams.Enabled = v 
+        UpdateItemsChams()
+    end
+})
+LegitChamsSect:Slider({
+    Title = "Items Transparency",
+    Min = 0,
+    Max = 1,
+    Default = 0.5,
+    Rounding = 2,
+    Callback = function(v) 
+        LegitAimbotModule.ItemsChams.TransparencyValue = v 
+        UpdateItemsChams()
+    end
+})
+
+-- =============================================
+-- 腳本初始化與 Quick Fly 按鈕（可選保留）
+-- =============================================
+
+-- 呼叫初始化
+InitializeLegitAimbot()  -- 如果你的第一段有 RenderStepped 連線，請確保這裡或在 Toggle 裡啟動
+
+-- Quick Fly 按鈕（你原本的自訂 UI，可選保留或刪除）
+local QuickUIFrame = Instance.new("Frame")
+QuickUIFrame.Name = "QuickUIFrame"
+QuickUIFrame.Size = UDim2.new(0, 80, 0, 30)
+QuickUIFrame.Position = UDim2.new(0, 10, 0, 50)
+QuickUIFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+QuickUIFrame.BackgroundTransparency = 0.5
+QuickUIFrame.BorderSizePixel = 0
+
+local QuickUIText = Instance.new("TextButton")
+QuickUIText.Name = "QuickUIText"
+QuickUIText.Size = UDim2.new(1, 0, 1, 0)
+QuickUIText.BackgroundTransparency = 1
+QuickUIText.Text = "FLY OFF"
+QuickUIText.TextColor3 = Color3.fromRGB(255, 50, 50)
+QuickUIText.Font = Enum.Font.GothamBold
+QuickUIText.TextSize = 12
+QuickUIText.Parent = QuickUIFrame
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "QuickUIScreen"
+ScreenGui.Parent = game:GetService("CoreGui")
+QuickUIFrame.Parent = ScreenGui
+
+QuickUIText.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    if flyEnabled then 
+        QuickUIText.Text = "FLY ON" 
+        QuickUIText.TextColor3 = Color3.fromRGB(50, 255, 50) 
+        startFlying()
+    else 
+        QuickUIText.Text = "FLY OFF" 
+        QuickUIText.TextColor3 = Color3.fromRGB(255, 50, 50) 
+        disableFlying() 
+    end
+end)
+
+-- 腳本結束
+print("腳本載入完成 - WindUI 版本")
