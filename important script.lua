@@ -1932,23 +1932,23 @@ UniversalTab:Divider()
 
 
 
---// Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local TextChatService = game:GetService("TextChatService")
 
-local LP = Players.LocalPlayer
+--==============================
+-- 翻譯設定
+--==============================
 
--- ========= 全域設定 =========
 getgenv().TranslateConfig = {
+    Enabled = true,
+    AutoChatTranslate = true,
     TargetLanguage = "zh-CN",
-    AutoChatTranslate = false,
-    AutoUITranslate = false,
-    UISpeed = 3
+    DisplayTime = 5
 }
 
--- ========= 語言選項 =========
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+local TranslateCache = {}
+
 local LanguageOptions = {
     ["簡體中文"] = "zh-CN",
     ["繁體中文"] = "zh-TW",
@@ -1956,192 +1956,148 @@ local LanguageOptions = {
     ["日文"] = "ja"
 }
 
--- ========= 翻譯快取 =========
-local TranslateCache = {}
+--==============================
+-- 判斷是否為外語（只翻譯非中文）
+--==============================
 
--- ========= 翻譯函數 =========
+local function IsForeign(text)
+    -- 如果包含中文就不翻
+    if string.find(text, "[\228-\233]") then
+        return false
+    end
+    return true
+end
+
+--==============================
+-- 翻譯函數（Google API）
+--==============================
+
 local function Translate(text)
-    if not text or text == "" then
+    if not getgenv().TranslateConfig.Enabled then
         return text
     end
 
-    local target = getgenv().TranslateConfig.TargetLanguage
-    local key = text .. "_" .. target
-
-    if TranslateCache[key] then
-        return TranslateCache[key]
+    if TranslateCache[text] then
+        return TranslateCache[text]
     end
 
-    local body = HttpService:JSONEncode({
-        q = text,
-        source = "auto",
-        target = target,
-        format = "text"
-    })
+    local url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl="
+        .. getgenv().TranslateConfig.TargetLanguage
+        .. "&dt=t&q="
+        .. HttpService:UrlEncode(text)
 
-    local success, result = pcall(function()
-        return HttpService:PostAsync(
-            "https://libretranslate.com/translate",
-            body,
-            Enum.HttpContentType.ApplicationJson
-        )
+    local success, response = pcall(function()
+        return game:HttpGet(url)
     end)
 
     if not success then
+        warn("翻譯失敗")
         return text
     end
 
-    local decoded = HttpService:JSONDecode(result)
+    local data = HttpService:JSONDecode(response)
+    local translated = data[1][1][1]
 
-    -- 如果已經是目標語言就不翻
-    if decoded.detectedLanguage 
-        and decoded.detectedLanguage.language == target then
-        TranslateCache[key] = text
-        return text
-    end
-
-    local translated = decoded.translatedText or text
-    TranslateCache[key] = translated
-
+    TranslateCache[text] = translated
     return translated
 end
 
--- ========= Wind UI =========
+--==============================
+-- UI 控制項（放在 UniversalTab 下）
+--==============================
 
--- ▼ Dropdown
+UniversalTab:Toggle({
+    Title = "啟用翻譯",
+    Default = true,
+    Callback = function(Value)
+        getgenv().TranslateConfig.Enabled = Value
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "自動翻譯聊天",
+    Default = true,
+    Callback = function(Value)
+        getgenv().TranslateConfig.AutoChatTranslate = Value
+    end
+})
+
 UniversalTab:Dropdown({
     Title = "翻譯語言",
-    Values = {"簡體中文", "繁體中文", "英文", "日文"},
-    Default = "簡體中文",
-    Multi = false,
+    Values = {
+        "簡體中文",
+        "繁體中文",
+        "英文",
+        "日文"
+    },
+    Default = 1, -- V1.6.64 必須是數字
 
     Callback = function(Value)
         local lang = LanguageOptions[Value]
         if lang then
             getgenv().TranslateConfig.TargetLanguage = lang
             table.clear(TranslateCache)
-
-            if _G.WindUI then
-                _G.WindUI:Notify({
-                    Title = "語言切換成功",
-                    Content = Value,
-                    Duration = 3
-                })
-            end
         end
     end
 })
 
--- ▼ 聊天翻譯
-UniversalTab:Toggle({
-    Title = "聊天翻譯",
-    Default = false,
-    Callback = function(Value)
-        getgenv().TranslateConfig.AutoChatTranslate = Value
-    end
-})
-
--- ▼ UI翻譯
-UniversalTab:Toggle({
-    Title = "UI翻譯",
-    Default = false,
-    Callback = function(Value)
-        getgenv().TranslateConfig.AutoUITranslate = Value
-    end
-})
-
--- ▼ UI翻譯間隔
 UniversalTab:Slider({
-    Title = "UI翻譯間隔（秒）",
-    Min = 1,
-    Max = 5,
-    Default = 3,
-    Rounding = 0,
+    Title = "顯示時間",
+    Value = {
+        Min = 1,
+        Max = 10,
+        Default = 5
+    },
 
     Callback = function(Value)
-        Value = tonumber(Value)
-        getgenv().TranslateConfig.UISpeed = Value
-
-        if _G.WindUI then
-            _G.WindUI:Notify({
-                Title = "間隔已更新",
-                Content = Value .. " 秒",
-                Duration = 2
-            })
-        end
+        getgenv().TranslateConfig.DisplayTime = Value
     end
 })
 
--- ========= 聊天翻譯處理 =========
+--==============================
+-- 聊天監聽（只翻譯外語）
+--==============================
 
-local function HandleMessage(playerName, message)
-    if not getgenv().TranslateConfig.AutoChatTranslate then return end
-    if playerName == LP.Name then return end
+for _, player in pairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
 
-    task.spawn(function()
-        local translated = Translate(message)
+        if not getgenv().TranslateConfig.AutoChatTranslate then return end
+        if not IsForeign(message) then return end
 
-        if translated ~= message then
-            if _G.WindUI then
+        task.spawn(function()
+            local translated = Translate(message)
+
+            if translated ~= message then
                 _G.WindUI:Notify({
-                    Title = playerName,
+                    Title = player.Name,
                     Content = translated,
-                    Duration = 5,
-                    Icon = "Translate"
+                    Duration = getgenv().TranslateConfig.DisplayTime
                 })
             end
-        end
+        end)
+
     end)
 end
 
--- 舊聊天
 Players.PlayerAdded:Connect(function(player)
     player.Chatted:Connect(function(message)
-        HandleMessage(player.Name, message)
-    end)
-end)
 
--- 新聊天
-if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-    TextChatService.MessageReceived:Connect(function(msg)
-        if msg.TextSource then
-            local player = Players:GetPlayerByUserId(msg.TextSource.UserId)
-            if player then
-                HandleMessage(player.Name, msg.Text)
+        if not getgenv().TranslateConfig.AutoChatTranslate then return end
+        if not IsForeign(message) then return end
+
+        task.spawn(function()
+            local translated = Translate(message)
+
+            if translated ~= message then
+                _G.WindUI:Notify({
+                    Title = player.Name,
+                    Content = translated,
+                    Duration = getgenv().TranslateConfig.DisplayTime
+                })
             end
-        end
+        end)
+
     end)
-end
-
--- ========= UI自動翻譯 =========
-
-local function AutoTranslateUI()
-    local playerGui = LP:FindFirstChild("PlayerGui")
-    if not playerGui then return end
-
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-            if obj.Text and obj.Text ~= "" then
-                local translated = Translate(obj.Text)
-                if translated ~= obj.Text then
-                    obj.Text = translated
-                end
-            end
-        end
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    if not getgenv().TranslateConfig.AutoUITranslate then return end
-
-    local interval = getgenv().TranslateConfig.UISpeed
-
-    if not getgenv()._LastUITranslate
-        or tick() - getgenv()._LastUITranslate >= interval then
-
-        getgenv()._LastUITranslate = tick()
-        AutoTranslateUI()
-    end
 end)
 
 -- ESPTab
