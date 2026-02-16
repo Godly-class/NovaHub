@@ -2869,6 +2869,44 @@ NTab:Toggle({
     end
 })
 
+NTab:Button({
+        Title = "黑洞控制器"
+        Desc = "不是我做的但是我是漢化"
+        Callback = function()
+            loadstring(game:HttpGet("https://pastefy.app/2C3cRXXp/raw"))()
+            task.wait(1)
+            local ReplaceMap = {
+    ["evilions blackhole tool"] = "黑洞控制器"
+}
+
+local function ReplaceName(obj)
+    if obj:IsA("Tool") then
+        for target, replacement in pairs(ReplaceMap) do
+            if string.find(obj.Name, target) then
+                obj.Name = string.gsub(obj.Name, target, replacement)
+
+                -- 防止被改回
+                obj:GetPropertyChangedSignal("Name"):Connect(function()
+                    if string.find(obj.Name, target) then
+                        obj.Name = string.gsub(obj.Name, target, replacement)
+                    end
+                end)
+            end
+        end
+    end
+end
+
+-- 掃描現有
+for _, v in pairs(game:GetDescendants()) do
+    ReplaceName(v)
+end
+
+-- 監聽新生成
+game.DescendantAdded:Connect(function(obj)
+    ReplaceName(obj)
+end)
+})
+
 SettingsTab:Section({ Title = "🎨 介面自訂", TextSize = 20 })
 
 SettingsTab:Divider()
