@@ -124,7 +124,7 @@ end
 
 Window:EditOpenButton({
     Title = "Dev Nova",
-    Icon = "Terminal",
+    Icon = "terminal",
     CornerRadius = UDim.new(0,16),
     StrokeThickness = 2,
     Color = ColorSequence.new( -- gradient
