@@ -2098,7 +2098,7 @@ end)
     -- 存入緩存
     TranslateCache[key] = translated
     return translated
-end
+
 
 -- ==== 聊天翻譯 ====
 Players.PlayerChatted:Connect(function(player, message)
