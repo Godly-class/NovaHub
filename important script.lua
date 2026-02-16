@@ -124,7 +124,7 @@ end
 
 Window:EditOpenButton({
     Title = "Dev Nova",
-    Icon = "monitor",
+    Icon = "Terminal",
     CornerRadius = UDim.new(0,16),
     StrokeThickness = 2,
     Color = ColorSequence.new( -- gradient
@@ -140,7 +140,7 @@ Window:Tag({
     Title = "Dev Version",
     Icon = "github",
     Color = Color3.fromHex("#6a5cff"),
-    Radius = 0, -- from 0 to 13
+    Radius = 13, -- from 0 to 13
 })
 
 --// Services
@@ -164,16 +164,16 @@ end)
 --// ===== 建立 Tag =====
 local pingTag = Window:Tag({
     Title = "Ping: 0",
-    Icon = "github",
+    Icon = "arrow-down",
     Color = Color3.fromHex("#5cecff"),
-    Radius = 0,
+    Radius = 13,
 })
 
 local fpsTag = Window:Tag({
     Title = "FPS: 0",
-    Icon = "github",
+    Icon = "arrow-up",
     Color = Color3.fromHex("#5cff90"),
-    Radius = 0,
+    Radius = 13,
 })
 
 --// ===== 即時更新（每 0.5 秒）=====
