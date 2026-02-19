@@ -1020,70 +1020,30 @@ UniversalTab:Button({
 
     Callback = function()
 
-        local count = 0
-
-        
-
-        local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-
-            local method = getnamecallmethod()
-
-            
-
-            if self == LocalPlayer then
-
-                if method == "Kick" or method == "Destroy" then
-
-                    count = count + 1
-
-                    print("防禦本地 Kick/Destroy ×" .. count)
-
-                    return
-
-                end
-
-            end
-
-            
-
-            return oldNamecall(self, ...)
-
-        end)
-
-        
-
-        spawn(function()
-
-            while true do
-
-                task.wait(0.1)
-
-                local char = LocalPlayer.Character
-
-                if char then
-
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-
-                    if hum and hum.Health <= 0 then
-
-                        hum.Health = 1
-
-                        print("防 Health 歸零")
-
-                    end
-
-                end
-
-            end
-
-        end)
-
-        
-
-        print("Anti Kick 已啟用")
-
+-- 安全起見，先包 newcclosure（有些 executor 強制要用）
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()  -- 取得被呼叫的方法名
+    
+    -- 範例：攔截 Kick，讓它不真的踢你
+    if method == "Kick" and self == game.Players.LocalPlayer then
+        print("有人想 Kick 我！理由：" .. tostring(...))
+        return -- 不呼叫原本，直接擋掉
     end
+    
+    -- 範例：改 FireServer 參數（例如無限發送 Remote）
+    if method == "FireServer" then
+        print("Remote 被呼叫！方法：" .. tostring(...))
+        -- 你可以改參數：return oldNamecall(self, "改參數", ...)
+    end
+    
+    -- 正常呼叫原本的
+    return oldNamecall(self, ...)
+end))
 
+print("hookmetamethod __namecall 已安裝！測試 Kick 不會斷線")
+game.Players.LocalPlayer:Kick("測試～")  -- 應該只印訊息，不斷線
+            
 })
 
 UniversalTab:Divider()
