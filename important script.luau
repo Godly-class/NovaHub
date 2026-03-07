@@ -1,3 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/loading.lua"))()
+task.wait(5)
 -- === WindUI 載入區塊（已驗證成功的方式） ===
 
 local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
@@ -128,8 +130,8 @@ Window:EditOpenButton({
     CornerRadius = UDim.new(0,16),
     StrokeThickness = 2,
     Color = ColorSequence.new( -- gradient
-        Color3.fromHex("FF0F7B"), 
-        Color3.fromHex("F89B29")
+        Color3.fromHex("#4A90E2"), 
+        Color3.fromHex("#8A3FFC")
     ),
     OnlyMobile = false,
     Enabled = true,
@@ -430,7 +432,9 @@ PopularTab:Section({ Title = "⭐ 最熱門腳本", TextSize = 20 })
 
 PopularTab:Divider()
 
-createScriptButton(PopularTab, "通用靜默自瞄", "幾乎全遊戲通用", "https://atlasteam.live/silentaim", "全遊戲", "🚀")
+createScriptButton(PopularTab, "通用靜默自瞄", "幾乎全遊戲通用（已失效，但我們永遠記得他）", "https://atlasteam.live/silentaim", "全遊戲", "🚀")
+
+createScriptButton(PopularTab, "通用靜默2.0", "上一個版本的替代，Ui更好看（但是是英文）", "https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/HBSS.lua", "全遊戲", "🤯")
 
 createScriptButton(PopularTab, "Infinite Yield", "進階管理指令，功能豐富", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", "全遊戲", "👑")
 
