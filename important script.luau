@@ -1761,6 +1761,134 @@ UserInputService.JumpRequest:Connect(function()
 
 end)
 
+
+local floatConnection
+local isFloating = false
+local floatPart = nil
+local fixedY = nil
+local lastFollowPosition = nil
+
+-- 建立超大透明穿牆平台
+local function createFloatPlatform()
+    if floatPart then floatPart:Destroy() end
+    
+    floatPart = Instance.new("Part")
+    floatPart.Name = "FloatPlatform"
+    floatPart.Size = Vector3.new(500, 1, 500)           -- 更大一點，邊界更寬裕
+    floatPart.Transparency = 1
+    floatPart.CanCollide = false                        -- 完全穿牆
+    floatPart.CanQuery = false                          -- 不會被 Raycast 等偵測到
+    floatPart.Anchored = true
+    floatPart.Material = Enum.Material.ForceField
+    floatPart.Color = Color3.fromRGB(0, 0, 0)
+    floatPart.Parent = workspace
+    
+    local hrp = game.Players.LocalPlayer.Character 
+        and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        floatPart.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
+        fixedY = hrp.Position.Y - 3
+    end
+end
+
+-- 檢查是否需要跟隨（距離 > 50 就跟隨一次）
+local function checkAndFollowIfNearEdge()
+    if not floatPart or not fixedY then return end
+    
+    local player = game.Players.LocalPlayer
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local currentPos = hrp.Position
+    local partPos = floatPart.Position
+    
+    -- 只比對 X,Z 平面距離
+    local horizontalDistance = (Vector3.new(currentPos.X, 0, currentPos.Z) - Vector3.new(partPos.X, 0, partPos.Z)).Magnitude
+    
+    if horizontalDistance > 50 then
+        -- 直接瞬移到玩家正下方
+        floatPart.CFrame = CFrame.new(currentPos.X, fixedY, currentPos.Z)
+        lastFollowPosition = currentPos
+    end
+end
+
+-- 開啟浮空
+local function enableFloat()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not hrp then return end
+    
+    isFloating = true
+    fixedY = hrp.Position.Y - 3
+    
+    createFloatPlatform()
+    lastFollowPosition = hrp.Position
+    
+    -- 每幀強制鎖定 Y + 檢查邊界
+    floatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not isFloating or not hrp or not hrp.Parent then return end
+        
+        -- 鎖定 Y 軸（保持玩家相對平台高度）
+        local currentPos = hrp.Position
+        hrp.CFrame = CFrame.new(currentPos.X, fixedY + 3, currentPos.Z) * hrp.CFrame.Rotation
+        
+        -- 檢查是否接近邊緣並跟隨
+        checkAndFollowIfNearEdge()
+    end)
+end
+
+-- 關閉浮空
+local function disableFloat()
+    isFloating = false
+    
+    if floatConnection then
+        floatConnection:Disconnect()
+        floatConnection = nil
+    end
+    
+    if floatPart then
+        floatPart:Destroy()
+        floatPart = nil
+    end
+end
+
+-- UI 元件
+UniversalTab:Toggle({
+    Name = "浮空模式（Y鎖定 + 接近50單位自動跟隨 + 穿牆）",
+    Default = false,
+    Callback = function(value)
+        if value then
+            enableFloat()
+        else
+            disableFloat()
+        end
+    end
+})
+
+-- 手動重置按鈕（緊急用）
+UniversalTab:Button({
+    Name = "強制重置平台到腳下",
+    Callback = function()
+        if isFloating then
+            local hrp = game.Players.LocalPlayer.Character 
+                and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and floatPart then
+                floatPart.CFrame = CFrame.new(hrp.Position.X, fixedY, hrp.Position.Z)
+                lastFollowPosition = hrp.Position
+            end
+        end
+    end
+})
+
+-- 角色重生自動關閉
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    disableFloat()
+end)
+
 UniversalTab:Divider()
 
 
@@ -1892,21 +2020,21 @@ UniversalTab:Divider()
 
 
 
---==============================
--- 翻譯設定
---==============================
-
 getgenv().TranslateConfig = {
-    Enabled = true,
+    Enabled = true,                    -- 總開關
+    TranslateUI = true,                -- 新增：是否翻譯 UI 文字
     AutoChatTranslate = true,
     TargetLanguage = "zh-CN",
-    DisplayTime = 5
+    DisplayTime = 5,
+    UIScanInterval = 3                 -- UI 掃描間隔（秒），避免太頻繁
 }
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-local TranslateCache = {}
+local TranslateCache = {}              -- 文字 → 翻譯結果
+local TranslatedInstances = {}         -- 已處理過的 Instance 避免重複
 
 local LanguageOptions = {
     ["簡體中文"] = "zh-CN",
@@ -1916,21 +2044,22 @@ local LanguageOptions = {
 }
 
 --==============================
--- 判斷是否為外語（只翻譯非中文）
+-- 判斷是否需要翻譯（非中文）
 --==============================
-
 local function IsForeign(text)
-    -- 如果包含中文就不翻
-    if string.find(text, "[\228-\233]") then
+    if typeof(text) \~= "string" or text == "" then
+        return false
+    end
+    -- 包含任何中文字符就不翻
+    if text:find("[\228-\233]") then
         return false
     end
     return true
 end
 
 --==============================
--- 翻譯函數（Google API）
+-- Google 翻譯核心函數
 --==============================
-
 local function Translate(text)
     if not getgenv().TranslateConfig.Enabled then
         return text
@@ -1942,31 +2071,147 @@ local function Translate(text)
 
     local url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl="
         .. getgenv().TranslateConfig.TargetLanguage
-        .. "&dt=t&q="
-        .. HttpService:UrlEncode(text)
+        .. "&dt=t&q=" .. HttpService:UrlEncode(text)
 
     local success, response = pcall(function()
-        return game:HttpGet(url)
+        return game:HttpGet(url, true)
     end)
 
-    if not success then
-        warn("翻譯失敗")
+    if not success or not response then
+        warn("[翻譯] 請求失敗:", text)
         return text
     end
 
-    local data = HttpService:JSONDecode(response)
-    local translated = data[1][1][1]
+    local success2, data = pcall(function()
+        return HttpService:JSONDecode(response)
+    end)
 
+    if not success2 or not data or not data[1] or not data[1][1] or not data[1][1][1] then
+        warn("[翻譯] 解析失敗:", text)
+        return text
+    end
+
+    local translated = data[1][1][1]
     TranslateCache[text] = translated
     return translated
 end
 
 --==============================
--- UI 控制項（放在 UniversalTab 下）
+-- 翻譯單個 Text 屬性（支援 TextLabel, TextButton, TextBox 等）
 --==============================
+local function TryTranslateInstance(inst)
+    if not inst:IsA("GuiObject") then return end
+    if TranslatedInstances[inst] then return end
 
+    local properties = {"Text", "PlaceholderText"}
+
+    for _, prop in ipairs(properties) do
+        local original = inst[prop]
+        if typeof(original) == "string" and IsForeign(original) then
+            task.spawn(function()
+                local translated = Translate(original)
+                if translated \~= original then
+                    -- 安全覆蓋（用 pcall 避免 Locked property 錯誤）
+                    pcall(function()
+                        inst[prop] = translated
+                    end)
+                end
+            end)
+        end
+    end
+
+    TranslatedInstances[inst] = true
+end
+
+--==============================
+-- 掃描並翻譯所有 UI（PlayerGui + CoreGui）
+--==============================
+local function ScanAndTranslateUI()
+    if not getgenv().TranslateConfig.TranslateUI then return end
+    if not getgenv().TranslateConfig.Enabled then return end
+
+    local containers = {
+        game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 10),
+        game:GetService("CoreGui")
+    }
+
+    for _, container in ipairs(containers) do
+        if not container then continue end
+
+        for _, obj in ipairs(container:GetDescendants()) do
+            TryTranslateInstance(obj)
+        end
+
+        -- 監聽新加入的物件
+        obj.ChildAdded:Connect(function(child)
+            task.wait(0.1)  -- 稍微延遲確保文字載入
+            TryTranslateInstance(child)
+            for _, sub in ipairs(child:GetDescendants()) do
+                TryTranslateInstance(sub)
+            end
+        end)
+    end
+end
+
+-- 週期性掃描（處理動態生成的 UI）
+task.spawn(function()
+    while true do
+        if getgenv().TranslateConfig.Enabled and getgenv().TranslateConfig.TranslateUI then
+            pcall(ScanAndTranslateUI)
+        end
+        task.wait(getgenv().TranslateConfig.UIScanInterval or 3)
+    end
+end)
+
+-- 初次執行一次完整掃描
+task.delay(1, ScanAndTranslateUI)
+
+--==============================
+-- 聊天翻譯（維持原功能）
+--==============================
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        if not getgenv().TranslateConfig.AutoChatTranslate then return end
+        if not IsForeign(message) then return end
+
+        task.spawn(function()
+            local translated = Translate(message)
+            if translated \~= message then
+                _G.WindUI:Notify({
+                    Title = player.Name,
+                    Content = translated,
+                    Duration = getgenv().TranslateConfig.DisplayTime
+                })
+            end
+        end)
+    end)
+end
+
+-- 新玩家加入時也要監聽
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        -- 同上邏輯
+        if not getgenv().TranslateConfig.AutoChatTranslate then return end
+        if not IsForeign(message) then return end
+
+        task.spawn(function()
+            local translated = Translate(message)
+            if translated \~= message then
+                _G.WindUI:Notify({
+                    Title = player.Name,
+                    Content = translated,
+                    Duration = getgenv().TranslateConfig.DisplayTime
+                })
+            end
+        end)
+    end)
+end)
+
+--==============================
+-- UI 控制項（新增 UI 翻譯開關）
+--==============================
 UniversalTab:Toggle({
-    Title = "啟用翻譯",
+    Title = "啟用翻譯（總開關）",
     Default = true,
     Callback = function(Value)
         getgenv().TranslateConfig.Enabled = Value
@@ -1974,7 +2219,19 @@ UniversalTab:Toggle({
 })
 
 UniversalTab:Toggle({
-    Title = "自動翻譯聊天",
+    Title = "翻譯遊戲內 UI 文字",
+    Default = true,
+    Callback = function(Value)
+        getgenv().TranslateConfig.TranslateUI = Value
+        -- 開啟時立即掃描一次
+        if Value then
+            task.spawn(ScanAndTranslateUI)
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "自動翻譯聊天訊息",
     Default = true,
     Callback = function(Value)
         getgenv().TranslateConfig.AutoChatTranslate = Value
@@ -1982,82 +2239,55 @@ UniversalTab:Toggle({
 })
 
 UniversalTab:Dropdown({
-    Title = "翻譯語言",
-    Values = {
-        "簡體中文",
-        "繁體中文",
-        "英文",
-        "日文"
-    },
-    Default = 1, -- V1.6.64 必須是數字
-
+    Title = "目標語言",
+    Values = {"簡體中文", "繁體中文", "英文", "日文"},
+    Default = 1,
     Callback = function(Value)
         local lang = LanguageOptions[Value]
         if lang then
             getgenv().TranslateConfig.TargetLanguage = lang
-            table.clear(TranslateCache)
+            -- 語言變更 → 清空快取並重新掃描 UI
+            TranslateCache = {}
+            TranslatedInstances = {}
+            task.spawn(ScanAndTranslateUI)
         end
     end
 })
 
 UniversalTab:Slider({
-    Title = "顯示時間",
-    Value = {
-        Min = 1,
-        Max = 10,
-        Default = 5
-    },
-
+    Title = "聊天通知顯示秒數",
+    Min = 1,
+    Max = 15,
+    Default = 5,
     Callback = function(Value)
         getgenv().TranslateConfig.DisplayTime = Value
     end
 })
 
---==============================
--- 聊天監聽（只翻譯外語）
---==============================
+UniversalTab:Slider({
+    Title = "UI 掃描間隔（秒）",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Callback = function(Value)
+        getgenv().TranslateConfig.UIScanInterval = Value
+    end
+})
 
-for _, player in pairs(Players:GetPlayers()) do
-    player.Chatted:Connect(function(message)
-
-        if not getgenv().TranslateConfig.AutoChatTranslate then return end
-        if not IsForeign(message) then return end
-
-        task.spawn(function()
-            local translated = Translate(message)
-
-            if translated ~= message then
-                _G.WindUI:Notify({
-                    Title = player.Name,
-                    Content = translated,
-                    Duration = getgenv().TranslateConfig.DisplayTime
-                })
-            end
-        end)
-
-    end)
-end
-
-Players.PlayerAdded:Connect(function(player)
-    player.Chatted:Connect(function(message)
-
-        if not getgenv().TranslateConfig.AutoChatTranslate then return end
-        if not IsForeign(message) then return end
-
-        task.spawn(function()
-            local translated = Translate(message)
-
-            if translated ~= message then
-                _G.WindUI:Notify({
-                    Title = player.Name,
-                    Content = translated,
-                    Duration = getgenv().TranslateConfig.DisplayTime
-                })
-            end
-        end)
-
-    end)
-end)
+-- 清除快取按鈕（debug 用）
+UniversalTab:Button({
+    Title = "清除翻譯快取並重新掃描",
+    Callback = function()
+        TranslateCache = {}
+        TranslatedInstances = {}
+        task.spawn(ScanAndTranslateUI)
+        _G.WindUI:Notify({
+            Title = "系統",
+            Content = "已清除快取並重新掃描 UI",
+            Duration = 3
+        })
+    end
+})
 
 -- ESPTab
 
