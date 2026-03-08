@@ -2292,6 +2292,7 @@ ESPTab:Divider()
 -- Tab 名稱：ESPTab
 -- 完全符合你列出的 8 項需求
 -- =============================================
+print("設定過程無問題")
 getgenv().ESPConfig = {
     Enabled = false,           -- 總開關
     Highlight = false,
@@ -2671,6 +2672,7 @@ local function DisableESP()
 end
 
 -- ====================== UI 元件 ======================
+print("Ui無問題")
 ESPTab:Toggle({
     Title = "ESP 總開關",
     Default = false,
