@@ -1,23 +1,4 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/loading.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
-n({
-     Title = "腳本正在加載！",
-     Content = "請耐心等待...",
-      Audio = "rbxassetid://17208361335",
-      Length = 1,
-      Image = "rbxassetid://4483362458",
-      BarColor = Color3.fromRGB(0, 170, 255)
-})
-
-n({
-    Title = "NovaHub",
-    Content = "by eert602\n歡迎加入我們的dc！",
-    Audio = "rbxassetid://17208361335",
-    Length = 8,
-    Image = "rbxassetid://4483362458",
-    BarColor = Color3.fromRGB(0, 170, 255)
-})
-
 task.wait(5)
 
 -- === WindUI 載入區塊（已驗證成功的方式） ===
