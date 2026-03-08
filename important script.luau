@@ -52,6 +52,7 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
+print("第一段無問題")
 
 -- 初始通知
 
