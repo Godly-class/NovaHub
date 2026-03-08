@@ -1850,7 +1850,7 @@ end
 
 -- UI 元件
 UniversalTab:Toggle({
-    Name = "浮空模式（Y鎖定 + 接近50單位自動跟隨 + 穿牆）",
+    Title = "浮空模式（Y鎖定 + 接近50單位自動跟隨 + 穿牆）",
     Default = false,
     Callback = function(value)
         if value then
@@ -1863,7 +1863,7 @@ UniversalTab:Toggle({
 
 -- 手動重置按鈕（緊急用）
 UniversalTab:Button({
-    Name = "強制重置平台到腳下",
+    Title = "強制重置平台到腳下",
     Callback = function()
         if isFloating then
             local hrp = game.Players.LocalPlayer.Character 
