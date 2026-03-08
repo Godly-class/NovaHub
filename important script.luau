@@ -55,14 +55,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- 初始通知
 
-n({
-    Title = "NovaHub載入完成",
-    Content = "享受你的體驗\n歡迎您使用",
-    Audio = "rbxassetid://17208361335",
-    Length = 8,
-    Image = "rbxassetid://4483362458",
-    BarColor = Color3.fromRGB(0, 170, 255)
-})
+
 
 -- 主題與透明度
 
