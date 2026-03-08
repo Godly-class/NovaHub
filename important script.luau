@@ -7,9 +7,7 @@ n({
       Length = 1,
       Image = "rbxassetid://4483362458",
       BarColor = Color3.fromRGB(0, 170, 255)
-        })
-    end)
-end)()
+})
 
 n({
     Title = "NovaHub",
