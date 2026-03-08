@@ -2292,11 +2292,6 @@ ESPTab:Divider()
 -- Tab 名稱：ESPTab
 -- 完全符合你列出的 8 項需求
 -- =============================================
-
-local library = loadstring(game:HttpGet("你的WindUI網址"))()  -- ← 改成你原本的載入方式
-local ESPTab = library:AddTab("ESPTab")
-
--- ====================== 配置 ======================
 getgenv().ESPConfig = {
     Enabled = false,           -- 總開關
     Highlight = false,
