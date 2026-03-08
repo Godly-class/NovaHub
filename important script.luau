@@ -1,5 +1,27 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/loading.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
+n({
+     Title = "腳本正在加載！",
+     Content = "請耐心等待...",
+      Audio = "rbxassetid://17208361335",
+      Length = 1,
+      Image = "rbxassetid://4483362458",
+      BarColor = Color3.fromRGB(0, 170, 255)
+        })
+    end)
+end)()
+
+n({
+    Title = "NovaHub",
+    Content = "by eert602\n歡迎加入我們的dc！",
+    Audio = "rbxassetid://17208361335",
+    Length = 8,
+    Image = "rbxassetid://4483362458",
+    BarColor = Color3.fromRGB(0, 170, 255)
+})
+
 task.wait(5)
+
 -- === WindUI 載入區塊（已驗證成功的方式） ===
 
 local code = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua", true)
@@ -54,16 +76,13 @@ local LocalPlayer = Players.LocalPlayer
 
 -- 初始通知
 
-StarterGui:SetCore("SendNotification", {
-
-    Title = "🔥 Nova中心 - 載入中",
-
-    Text = "頂級通用腳本中心正在初始化...",
-
-    Duration = 4,
-
-    Icon = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
-
+n({
+    Title = "NovaHub載入完成",
+    Content = "享受你的體驗\n歡迎您使用",
+    Audio = "rbxassetid://17208361335",
+    Length = 8,
+    Image = "rbxassetid://4483362458",
+    BarColor = Color3.fromRGB(0, 170, 255)
 })
 
 -- 主題與透明度
