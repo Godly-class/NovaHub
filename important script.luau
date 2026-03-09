@@ -2287,13 +2287,13 @@ ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 
 ESPTab:Divider()
 
+
 -- =============================================
--- ESP 全功能腳本（Wind UI 版） - 已修復 + 新增功能
+-- ESP 全功能腳本（Wind UI 版） - 完整版 + 新增「選擇顯示類型」
 -- Tab 名稱：ESPTab
 -- =============================================
 
 -- ====================== 配置 ======================
-print("配置無問題")
 getgenv().ESPConfig = {
     Enabled = false,
     Highlight = false,
@@ -2302,7 +2302,8 @@ getgenv().ESPConfig = {
     Radar = false,
     Box = false,
     ExtraDisplayEnabled = false,
-    ExtraSelected = {"名稱", "距離"}
+    ExtraSelected = {"名稱", "距離"},
+    TargetTypes = {"玩家", "NPC"}  -- ★ 新增：選擇顯示類型（複選）
 }
 
 local Players = game:GetService("Players")
@@ -2386,7 +2387,7 @@ local function CreateESP(target, isNPC)
     if not target then return end
     local key = isNPC and target or target  -- NPC 用 Model 當 key
     
-    if ESPObjects[key] or NPCObjects[key] then return end
+    if (isNPC and NPCObjects[key]) or (not isNPC and ESPObjects[key]) then return end
 
     local objs = {
         BoxTop    = NewLine(),
@@ -2396,8 +2397,8 @@ local function CreateESP(target, isNPC)
         Tracer    = NewLine(),
         NameText  = NewText(),
         DistText  = NewText(),
-        HealthBG  = NewSquare(),   -- 改成 Square
-        HealthBar = NewSquare(),   -- 改成 Square
+        HealthBG  = NewSquare(),
+        HealthBar = NewSquare(),
         Highlight = Instance.new("Highlight")
     }
 
@@ -2412,7 +2413,21 @@ local function CreateESP(target, isNPC)
     else
         ESPObjects[key] = objs
     end
-    return objs
+end
+
+-- ====================== 隱藏所有指定類型 ======================
+local function HideAllESP(isPlayer)
+    local objects = isPlayer and ESPObjects or NPCObjects
+    for _, objs in pairs(objects) do
+        for _, v in pairs(objs) do
+            if typeof(v) == "Instance" and v:IsA("Highlight") then
+                v.Adornee = nil
+                v.Enabled = false
+            elseif v.Visible \~= nil then
+                v.Visible = false
+            end
+        end
+    end
 end
 
 -- ====================== 更新單人/單 NPC ESP ======================
@@ -2431,19 +2446,17 @@ local function UpdateESP(target, objs, isNPC)
 
     local char = isNPC and target or target.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then
-        return  -- 已經全部隱藏，直接結束
+        return
     end
 
     local root = char.HumanoidRootPart
-    local head = char:FindFirstChild("Head") or root  -- 防 Head 不存在
+    local head = char:FindFirstChild("Head") or root
     local hum = char.Humanoid
 
     local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-    if not onScreen or rootPos.Z < 1 then  -- Z < 1 更嚴格，避免背後顯示
-        return  -- 已隱藏，直接結束
-    end
+    if not onScreen or rootPos.Z < 1 then return end
 
-    -- 計算方框（以下為正常顯示邏輯）
+    -- 計算方框
     local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
     local legPos  = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
     local height  = math.abs(headPos.Y - legPos.Y)
@@ -2472,11 +2485,7 @@ local function UpdateESP(target, objs, isNPC)
     -- Tracer
     if getgenv().ESPConfig.Lines then
         local vp = Camera.ViewportSize
-        local startY
-        if getgenv().ESPConfig.LinePosition == "上" then startY = 20
-        elseif getgenv().ESPConfig.LinePosition == "中" then startY = vp.Y / 2
-        else startY = vp.Y - 20 end
-        
+        local startY = getgenv().ESPConfig.LinePosition == "上" and 20 or getgenv().ESPConfig.LinePosition == "中" and vp.Y / 2 or vp.Y - 20
         objs.Tracer.From = Vector2.new(vp.X / 2, startY)
         objs.Tracer.To   = Vector2.new(rootPos.X, rootPos.Y)
         objs.Tracer.Color = espColor
@@ -2491,7 +2500,7 @@ local function UpdateESP(target, objs, isNPC)
         objs.Highlight.Enabled = true
     end
 
-    -- 額外顯示（血量 + 名稱距離）
+    -- 額外顯示
     if getgenv().ESPConfig.Box and getgenv().ESPConfig.ExtraDisplayEnabled then
         local selected = getgenv().ESPConfig.ExtraSelected
 
@@ -2500,7 +2509,7 @@ local function UpdateESP(target, objs, isNPC)
             local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
             local barHeight = height * healthPct
 
-            objs.HealthBG.Size     = Vector2.new(6, height)  -- 稍微加寬一點好看
+            objs.HealthBG.Size     = Vector2.new(6, height)
             objs.HealthBG.Position = Vector2.new(boxTopLeft.X - 12, headPos.Y)
             objs.HealthBG.Color    = Color3.fromRGB(30, 30, 30)
             objs.HealthBG.Filled   = true
@@ -2533,35 +2542,33 @@ local function UpdateESP(target, objs, isNPC)
     end
 end
 
--- ====================== 主循環（效能優化版） ======================
+-- ====================== 主循環 ======================
 local function ESPLoop()
     if not getgenv().ESPConfig.Enabled then
-        for _, objs in pairs(ESPObjects) do
-            for _, v in pairs(objs) do
-                if typeof(v) == "Instance" and v:IsA("Highlight") then v.Adornee = nil
-                elseif v.Visible \~= nil then v.Visible = false end
-            end
-        end
-        for _, objs in pairs(NPCObjects) do
-            for _, v in pairs(objs) do
-                if typeof(v) == "Instance" and v:IsA("Highlight") then v.Adornee = nil
-                elseif v.Visible \~= nil then v.Visible = false end
-            end
-        end
+        HideAllESP(true)  -- 隱藏玩家
+        HideAllESP(false) -- 隱藏 NPC
         RadarBG.Visible = false
         RadarBorder.Visible = false
         CenterDot.Visible = false
         return
     end
 
-    -- 更新玩家
-    for player, objs in pairs(ESPObjects) do
-        UpdateESP(player, objs, false)
-    end
+    local types = getgenv().ESPConfig.TargetTypes
 
-    -- 更新 NPC
-    for model, objs in pairs(NPCObjects) do
-        UpdateESP(model, objs, true)
+    -- ★ 根據選擇隱藏未選類型 ★
+    if not table.find(types, "玩家") then HideAllESP(true) end
+    if not table.find(types, "NPC") then HideAllESP(false) end
+
+    -- 只更新選中的類型
+    if table.find(types, "玩家") then
+        for player, objs in pairs(ESPObjects) do
+            UpdateESP(player, objs, false)
+        end
+    end
+    if table.find(types, "NPC") then
+        for model, objs in pairs(NPCObjects) do
+            UpdateESP(model, objs, true)
+        end
     end
 end
 
@@ -2569,17 +2576,19 @@ end
 local function EnableESP()
     if MainConnection then return end
 
-    -- 建立已存在玩家
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p \~= LocalPlayer then
-            CreateESP(p, false)
+    local types = getgenv().ESPConfig.TargetTypes
+
+    -- 只建立選中的類型
+    if table.find(types, "玩家") then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p \~= LocalPlayer then CreateESP(p, false) end
         end
     end
-
-    -- 建立已存在 NPC
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
-            CreateESP(obj, true)
+    if table.find(types, "NPC") then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
+                CreateESP(obj, true)
+            end
         end
     end
 
@@ -2614,34 +2623,66 @@ local function DisableESP()
 end
 
 -- ====================== UI ======================
-ESPTab:Toggle({Title = "ESP 總開關", Default = false, Callback = function(v) getgenv().ESPConfig.Enabled = v if v then EnableESP() else DisableESP() end end})
+ESPTab:Toggle({Title = "ESP 總開關", Default = false, Callback = function(v) 
+    getgenv().ESPConfig.Enabled = v 
+    if v then EnableESP() else DisableESP() end 
+end})
+
 ESPTab:Toggle({Title = "高亮 (Highlight)", Default = false, Callback = function(v) getgenv().ESPConfig.Highlight = v end})
+
 ESPTab:Toggle({Title = "線條 (Tracer)", Default = false, Callback = function(v) getgenv().ESPConfig.Lines = v end})
+
 ESPTab:Dropdown({Title = "線條位置", Values = {"上", "中", "下"}, Default = 3, Callback = function(v) getgenv().ESPConfig.LinePosition = v end})
+
+-- ★ 新增：選擇顯示類型（複選） ★
+ESPTab:Dropdown({
+    Title = "選擇顯示類型",
+    Values = {"玩家", "NPC"},
+    Multi = true,
+    Default = {"玩家", "NPC"},
+    Callback = function(selected)
+        getgenv().ESPConfig.TargetTypes = selected
+        if getgenv().ESPConfig.Enabled then
+            DisableESP()  -- 重新啟用以重建
+            EnableESP()
+        end
+    end
+})
+
 ESPTab:Toggle({Title = "雷達 (右上角小地圖)", Default = false, Callback = function(v) getgenv().ESPConfig.Radar = v end})
+
 ESPTab:Toggle({Title = "方框 (Box)", Default = false, Callback = function(v) getgenv().ESPConfig.Box = v end})
+
 ESPTab:Dropdown({Title = "選擇額外顯示", Values = {"血量", "名稱", "距離"}, Multi = true, Default = {"名稱", "距離"}, Callback = function(t) getgenv().ESPConfig.ExtraSelected = t end})
+
 ESPTab:Toggle({Title = "顯示額外功能 (需開方框)", Default = false, Callback = function(v) getgenv().ESPConfig.ExtraDisplayEnabled = v end})
-print("Ui無問題")
 
 -- ====================== 動態新增 ======================
 Players.PlayerAdded:Connect(function(p)
     if p == LocalPlayer then return end
-    p.CharacterAdded:Connect(function() CreateESP(p, false) end)
+    p.CharacterAdded:Connect(function()
+        if table.find(getgenv().ESPConfig.TargetTypes, "玩家") then
+            CreateESP(p, false)
+        end
+    end)
 end)
 
 workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
-        CreateESP(obj, true)
+        if table.find(getgenv().ESPConfig.TargetTypes, "NPC") then
+            CreateESP(obj, true)
+        end
     end
 end)
 
 -- 初始載入
 for _, p in ipairs(Players:GetPlayers()) do
-    if p \~= LocalPlayer then CreateESP(p, false) end
+    if p \~= LocalPlayer and table.find(getgenv().ESPConfig.TargetTypes, "玩家") then
+        CreateESP(p, false)
+    end
 end
 for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
+    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and table.find(getgenv().ESPConfig.TargetTypes, "NPC") then
         CreateESP(obj, true)
     end
 end
