@@ -2419,34 +2419,32 @@ end
 local function UpdateESP(target, objs, isNPC)
     if not objs then return end
 
+    -- ★ 每幀先強制全部隱藏（防止遺留） ★
+    for _, v in pairs(objs) do
+        if typeof(v) == "Instance" and v:IsA("Highlight") then
+            v.Adornee = nil
+            v.Enabled = false
+        elseif v.Visible \~= nil then
+            v.Visible = false
+        end
+    end
+
     local char = isNPC and target or target.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then
-        -- 徹底隱藏所有物件（修復遺留線條）
-        for _, v in pairs(objs) do
-            if typeof(v) == "Instance" and v:IsA("Highlight") then
-                v.Adornee = nil
-            elseif v.Visible \~= nil then
-                v.Visible = false
-            end
-        end
-        return
+        return  -- 已經全部隱藏，直接結束
     end
 
     local root = char.HumanoidRootPart
-    local head = char:FindFirstChild("Head")
+    local head = char:FindFirstChild("Head") or root  -- 防 Head 不存在
     local hum = char.Humanoid
 
     local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-    if not onScreen or rootPos.Z < 0 then
-        for _, v in pairs(objs) do
-            if v.Visible \~= nil then v.Visible = false end
-        end
-        objs.Highlight.Adornee = nil
-        return
+    if not onScreen or rootPos.Z < 1 then  -- Z < 1 更嚴格，避免背後顯示
+        return  -- 已隱藏，直接結束
     end
 
-    -- 計算方框
-    local headPos = Camera:WorldToViewportPoint((head and head.Position or root.Position) + Vector3.new(0, 0.5, 0))
+    -- 計算方框（以下為正常顯示邏輯）
+    local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
     local legPos  = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
     local height  = math.abs(headPos.Y - legPos.Y)
     local width   = height * 0.55
@@ -2469,22 +2467,20 @@ local function UpdateESP(target, objs, isNPC)
             line.Color = espColor
             line.Visible = true
         end
-    else
-        for _, line in pairs({objs.BoxTop, objs.BoxLeft, objs.BoxRight, objs.BoxBottom}) do
-            line.Visible = false
-        end
     end
 
     -- Tracer
     if getgenv().ESPConfig.Lines then
         local vp = Camera.ViewportSize
-        local startPos = Vector2.new(vp.X/2, getgenv().ESPConfig.LinePosition == "上" and 20 or getgenv().ESPConfig.LinePosition == "中" and vp.Y/2 or vp.Y-20)
-        objs.Tracer.From = startPos
-        objs.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+        local startY
+        if getgenv().ESPConfig.LinePosition == "上" then startY = 20
+        elseif getgenv().ESPConfig.LinePosition == "中" then startY = vp.Y / 2
+        else startY = vp.Y - 20 end
+        
+        objs.Tracer.From = Vector2.new(vp.X / 2, startY)
+        objs.Tracer.To   = Vector2.new(rootPos.X, rootPos.Y)
         objs.Tracer.Color = espColor
         objs.Tracer.Visible = true
-    else
-        objs.Tracer.Visible = false
     end
 
     -- Highlight
@@ -2492,8 +2488,7 @@ local function UpdateESP(target, objs, isNPC)
         objs.Highlight.Adornee = char
         objs.Highlight.Parent = game.CoreGui
         objs.Highlight.FillColor = espColor
-    else
-        objs.Highlight.Adornee = nil
+        objs.Highlight.Enabled = true
     end
 
     -- 額外顯示（血量 + 名稱距離）
@@ -2502,53 +2497,39 @@ local function UpdateESP(target, objs, isNPC)
 
         -- 長方形健康條
         if table.find(selected, "血量") then
-            local healthPct = hum.Health / hum.MaxHealth
+            local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
             local barHeight = height * healthPct
 
-            -- 背景
-            objs.HealthBG.Size = Vector2.new(5, height)
-            objs.HealthBG.Position = Vector2.new(boxTopLeft.X - 10, headPos.Y)
-            objs.HealthBG.Color = Color3.fromRGB(30, 30, 30)
-            objs.HealthBG.Filled = true
-            objs.HealthBG.Visible = true
+            objs.HealthBG.Size     = Vector2.new(6, height)  -- 稍微加寬一點好看
+            objs.HealthBG.Position = Vector2.new(boxTopLeft.X - 12, headPos.Y)
+            objs.HealthBG.Color    = Color3.fromRGB(30, 30, 30)
+            objs.HealthBG.Filled   = true
+            objs.HealthBG.Visible  = true
 
-            -- 填充條
-            objs.HealthBar.Size = Vector2.new(5, barHeight)
-            objs.HealthBar.Position = Vector2.new(boxTopLeft.X - 10, headPos.Y + (height - barHeight))
-            objs.HealthBar.Color = healthPct > 0.5 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-            objs.HealthBar.Filled = true
-            objs.HealthBar.Visible = true
-        else
-            objs.HealthBG.Visible = false
-            objs.HealthBar.Visible = false
+            objs.HealthBar.Size     = Vector2.new(6, barHeight)
+            objs.HealthBar.Position = Vector2.new(boxTopLeft.X - 12, headPos.Y + (height - barHeight))
+            objs.HealthBar.Color    = healthPct > 0.5 and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 80, 80)
+            objs.HealthBar.Filled   = true
+            objs.HealthBar.Visible  = true
         end
 
-        -- 名稱 + 距離
-        local namePos = Vector2.new(rootPos.X, headPos.Y - 22)
-        local dist = math.floor((root.Position - (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or root).Position).Magnitude)
+        local namePos = Vector2.new(rootPos.X, headPos.Y - 24)
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local dist = myRoot and math.floor((root.Position - myRoot.Position).Magnitude) or 0
 
         if table.find(selected, "名稱") then
-            objs.NameText.Position = namePos + Vector2.new(-25, 0)
-            objs.NameText.Text = isNPC and char.Name or target.Name
-            objs.NameText.Color = espColor
-            objs.NameText.Visible = true
-        else
-            objs.NameText.Visible = false
+            objs.NameText.Position = namePos + Vector2.new(-30, 0)
+            objs.NameText.Text     = isNPC and (char.Name or "NPC") or target.Name
+            objs.NameText.Color    = espColor
+            objs.NameText.Visible  = true
         end
 
         if table.find(selected, "距離") then
-            objs.DistText.Position = namePos + Vector2.new(25, 0)
-            objs.DistText.Text = dist .. " studs"
-            objs.DistText.Color = espColor
-            objs.DistText.Visible = true
-        else
-            objs.DistText.Visible = false
+            objs.DistText.Position = namePos + Vector2.new(30, 0)
+            objs.DistText.Text     = tostring(dist) .. " studs"
+            objs.DistText.Color    = espColor
+            objs.DistText.Visible  = true
         end
-    else
-        objs.NameText.Visible = false
-        objs.DistText.Visible = false
-        objs.HealthBG.Visible = false
-        objs.HealthBar.Visible = false
     end
 end
 
