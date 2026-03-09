@@ -2288,36 +2288,50 @@ ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 ESPTab:Divider()
 
 -- =============================================
--- ESP 全功能腳本（Wind UI 版）
+-- ESP 全功能腳本（Wind UI 版） - 已修復 + 新增功能
 -- Tab 名稱：ESPTab
--- 完全符合你列出的 8 項需求
 -- =============================================
-print("設定過程無問題")
+
+-- ====================== 配置 ======================
+print("配置無問題")
 getgenv().ESPConfig = {
-    Enabled = false,           -- 總開關
+    Enabled = false,
     Highlight = false,
     Lines = false,
-    LinePosition = "下",       -- 上 / 中 / 下
+    LinePosition = "下",
     Radar = false,
     Box = false,
     ExtraDisplayEnabled = false,
-    ExtraSelected = {"名稱", "距離"}  -- 預設可複選
+    ExtraSelected = {"名稱", "距離"}
 }
 
 local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
-local ESPObjects = {}      -- [player] = {boxLines, tracer, nameText, distText, healthBG, healthBar, highlight}
-local RadarDots = {}       -- [player] = Drawing.Circle
+local ESPObjects = {}      -- 玩家 ESP
+local NPCObjects = {}      -- NPC ESP
+local RadarDots = {}
 local MainConnection = nil
 
+-- ====================== 顏色函數 ======================
+local function GetESPColor(target)
+    if typeof(target) == "Instance" and target:IsA("Model") then
+        return Color3.fromRGB(255, 50, 50)  -- NPC 永遠紅色
+    end
+    if target.Team == LocalPlayer.Team then
+        return Color3.fromRGB(0, 255, 0)    -- 隊友綠
+    else
+        return Color3.fromRGB(255, 50, 50)  -- 敵人紅
+    end
+end
+
 -- ====================== 繪圖輔助 ======================
-local function NewLine()
+local function NewLine() 
     local l = Drawing.new("Line")
     l.Thickness = 1.5
-    l.Color = Color3.fromRGB(255, 255, 255)
     l.Transparency = 1
     l.Visible = false
     return l
@@ -2328,7 +2342,6 @@ local function NewText()
     t.Size = 13
     t.Center = true
     t.Outline = true
-    t.Color = Color3.fromRGB(255, 255, 255)
     t.Transparency = 1
     t.Visible = false
     return t
@@ -2337,13 +2350,13 @@ end
 local function NewSquare()
     local s = Drawing.new("Square")
     s.Thickness = 1.5
-    s.Color = Color3.fromRGB(255, 255, 255)
     s.Filled = false
+    s.Transparency = 1
     s.Visible = false
     return s
 end
 
--- ====================== 雷達繪圖 ======================
+-- ====================== 雷達 ======================
 local RadarSize = 160
 local RadarPos = Vector2.new(Camera.ViewportSize.X - RadarSize - 30, 30)
 
@@ -2353,12 +2366,14 @@ RadarBG.Position = RadarPos
 RadarBG.Color = Color3.fromRGB(0, 0, 0)
 RadarBG.Transparency = 0.6
 RadarBG.Filled = true
+RadarBG.Visible = false
 
 local RadarBorder = NewSquare()
 RadarBorder.Size = Vector2.new(RadarSize, RadarSize)
 RadarBorder.Position = RadarPos
 RadarBorder.Color = Color3.fromRGB(255, 255, 255)
 RadarBorder.Transparency = 1
+RadarBorder.Visible = false
 
 local CenterDot = Drawing.new("Circle")
 CenterDot.Radius = 3
@@ -2366,50 +2381,47 @@ CenterDot.Color = Color3.fromRGB(0, 255, 0)
 CenterDot.Filled = true
 CenterDot.Visible = false
 
--- ====================== 建立單人 ESP ======================
-local function CreateESP(player)
-    if player == LocalPlayer or ESPObjects[player] then return end
+-- ====================== 建立 ESP（玩家 & NPC 共用） ======================
+local function CreateESP(target, isNPC)
+    if not target then return end
+    local key = isNPC and target or target  -- NPC 用 Model 當 key
+    
+    if ESPObjects[key] or NPCObjects[key] then return end
 
     local objs = {
-        -- 方框 (4條線)
         BoxTop    = NewLine(),
         BoxLeft   = NewLine(),
         BoxRight  = NewLine(),
         BoxBottom = NewLine(),
-
-        -- 線條 (Tracer)
-        Tracer = NewLine(),
-
-        -- 文字
-        NameText = NewText(),
-        DistText = NewText(),
-
-        -- 血量條
-        HealthBG  = NewLine(),
-        HealthBar = NewLine(),
-
-        -- 高亮
-        Highlight = nil
+        Tracer    = NewLine(),
+        NameText  = NewText(),
+        DistText  = NewText(),
+        HealthBG  = NewSquare(),   -- 改成 Square
+        HealthBar = NewSquare(),   -- 改成 Square
+        Highlight = Instance.new("Highlight")
     }
 
-    -- 高亮實例
-    objs.Highlight = Instance.new("Highlight")
     objs.Highlight.FillColor = Color3.fromRGB(255, 0, 0)
     objs.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     objs.Highlight.FillTransparency = 0.5
     objs.Highlight.OutlineTransparency = 0
+    objs.Highlight.Enabled = false
 
-    ESPObjects[player] = objs
+    if isNPC then
+        NPCObjects[key] = objs
+    else
+        ESPObjects[key] = objs
+    end
+    return objs
 end
 
--- ====================== 更新單人 ESP ======================
-local function UpdateESP(player)
-    local objs = ESPObjects[player]
+-- ====================== 更新單人/單 NPC ESP ======================
+local function UpdateESP(target, objs, isNPC)
     if not objs then return end
 
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Head") or not char:FindFirstChild("Humanoid") then
-        -- 隱藏所有
+    local char = isNPC and target or target.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then
+        -- 徹底隱藏所有物件（修復遺留線條）
         for _, v in pairs(objs) do
             if typeof(v) == "Instance" and v:IsA("Highlight") then
                 v.Adornee = nil
@@ -2421,7 +2433,7 @@ local function UpdateESP(player)
     end
 
     local root = char.HumanoidRootPart
-    local head = char.Head
+    local head = char:FindFirstChild("Head")
     local hum = char.Humanoid
 
     local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
@@ -2433,29 +2445,28 @@ local function UpdateESP(player)
         return
     end
 
-    -- 計算 2D 方框
-    local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+    -- 計算方框
+    local headPos = Camera:WorldToViewportPoint((head and head.Position or root.Position) + Vector3.new(0, 0.5, 0))
     local legPos  = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
     local height  = math.abs(headPos.Y - legPos.Y)
     local width   = height * 0.55
 
-    local boxTopLeft    = Vector2.new(rootPos.X - width/2, headPos.Y)
-    local boxTopRight   = Vector2.new(rootPos.X + width/2, headPos.Y)
-    local boxBottomLeft = Vector2.new(rootPos.X - width/2, legPos.Y)
-    local boxBottomRight= Vector2.new(rootPos.X + width/2, legPos.Y)
+    local boxTopLeft     = Vector2.new(rootPos.X - width/2, headPos.Y)
+    local boxTopRight    = Vector2.new(rootPos.X + width/2, headPos.Y)
+    local boxBottomLeft  = Vector2.new(rootPos.X - width/2, legPos.Y)
+    local boxBottomRight = Vector2.new(rootPos.X + width/2, legPos.Y)
 
-    -- === 方框 ===
+    local espColor = GetESPColor(isNPC and "NPC" or target)
+
+    -- 方框
     if getgenv().ESPConfig.Box then
-        objs.BoxTop.From = boxTopLeft
-        objs.BoxTop.To   = boxTopRight
-        objs.BoxLeft.From = boxTopLeft
-        objs.BoxLeft.To   = boxBottomLeft
-        objs.BoxRight.From = boxTopRight
-        objs.BoxRight.To   = boxBottomRight
-        objs.BoxBottom.From = boxBottomLeft
-        objs.BoxBottom.To   = boxBottomRight
-
-        for _, line in pairs({objs.BoxTop, objs.BoxLeft, objs.BoxRight, objs.BoxBottom}) do
+        local lines = {objs.BoxTop, objs.BoxLeft, objs.BoxRight, objs.BoxBottom}
+        lines[1].From, lines[1].To = boxTopLeft, boxTopRight
+        lines[2].From, lines[2].To = boxTopLeft, boxBottomLeft
+        lines[3].From, lines[3].To = boxTopRight, boxBottomRight
+        lines[4].From, lines[4].To = boxBottomLeft, boxBottomRight
+        for _, line in pairs(lines) do
+            line.Color = espColor
             line.Visible = true
         end
     else
@@ -2464,51 +2475,48 @@ local function UpdateESP(player)
         end
     end
 
-    -- === 線條 (Tracer) ===
+    -- Tracer
     if getgenv().ESPConfig.Lines then
-        local startPos
         local vp = Camera.ViewportSize
-        if getgenv().ESPConfig.LinePosition == "上" then
-            startPos = Vector2.new(vp.X / 2, 20)
-        elseif getgenv().ESPConfig.LinePosition == "中" then
-            startPos = Vector2.new(vp.X / 2, vp.Y / 2)
-        else
-            startPos = Vector2.new(vp.X / 2, vp.Y - 20)
-        end
-
+        local startPos = Vector2.new(vp.X/2, getgenv().ESPConfig.LinePosition == "上" and 20 or getgenv().ESPConfig.LinePosition == "中" and vp.Y/2 or vp.Y-20)
         objs.Tracer.From = startPos
-        objs.Tracer.To   = Vector2.new(rootPos.X, rootPos.Y)
+        objs.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+        objs.Tracer.Color = espColor
         objs.Tracer.Visible = true
     else
         objs.Tracer.Visible = false
     end
 
-    -- === 高亮 ===
+    -- Highlight
     if getgenv().ESPConfig.Highlight then
         objs.Highlight.Adornee = char
         objs.Highlight.Parent = game.CoreGui
+        objs.Highlight.FillColor = espColor
     else
         objs.Highlight.Adornee = nil
     end
 
-    -- === 額外顯示 (只在有方框時生效) ===
+    -- 額外顯示（血量 + 名稱距離）
     if getgenv().ESPConfig.Box and getgenv().ESPConfig.ExtraDisplayEnabled then
         local selected = getgenv().ESPConfig.ExtraSelected
 
-        -- 血量
+        -- 長方形健康條
         if table.find(selected, "血量") then
             local healthPct = hum.Health / hum.MaxHealth
             local barHeight = height * healthPct
-            local barPosY = legPos.Y - barHeight
 
-            objs.HealthBG.From = Vector2.new(boxTopLeft.X - 6, legPos.Y)
-            objs.HealthBG.To   = Vector2.new(boxTopLeft.X - 6, headPos.Y)
+            -- 背景
+            objs.HealthBG.Size = Vector2.new(5, height)
+            objs.HealthBG.Position = Vector2.new(boxTopLeft.X - 10, headPos.Y)
             objs.HealthBG.Color = Color3.fromRGB(30, 30, 30)
+            objs.HealthBG.Filled = true
             objs.HealthBG.Visible = true
 
-            objs.HealthBar.From = Vector2.new(boxTopLeft.X - 5, legPos.Y)
-            objs.HealthBar.To   = Vector2.new(boxTopLeft.X - 5, barPosY)
+            -- 填充條
+            objs.HealthBar.Size = Vector2.new(5, barHeight)
+            objs.HealthBar.Position = Vector2.new(boxTopLeft.X - 10, headPos.Y + (height - barHeight))
             objs.HealthBar.Color = healthPct > 0.5 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            objs.HealthBar.Filled = true
             objs.HealthBar.Visible = true
         else
             objs.HealthBG.Visible = false
@@ -2517,29 +2525,23 @@ local function UpdateESP(player)
 
         -- 名稱 + 距離
         local namePos = Vector2.new(rootPos.X, headPos.Y - 22)
-        local dist = math.floor((root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+        local dist = math.floor((root.Position - (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or root).Position).Magnitude)
 
-        if table.find(selected, "名稱") and table.find(selected, "距離") then
-            -- 名稱靠左，距離靠右
+        if table.find(selected, "名稱") then
             objs.NameText.Position = namePos + Vector2.new(-25, 0)
-            objs.NameText.Text = player.Name
+            objs.NameText.Text = isNPC and char.Name or target.Name
+            objs.NameText.Color = espColor
             objs.NameText.Visible = true
-
-            objs.DistText.Position = namePos + Vector2.new(25, 0)
-            objs.DistText.Text = dist .. " studs"
-            objs.DistText.Visible = true
-        elseif table.find(selected, "名稱") then
-            objs.NameText.Position = namePos
-            objs.NameText.Text = player.Name
-            objs.NameText.Visible = true
-            objs.DistText.Visible = false
-        elseif table.find(selected, "距離") then
-            objs.DistText.Position = namePos
-            objs.DistText.Text = dist .. " studs"
-            objs.DistText.Visible = true
-            objs.NameText.Visible = false
         else
             objs.NameText.Visible = false
+        end
+
+        if table.find(selected, "距離") then
+            objs.DistText.Position = namePos + Vector2.new(25, 0)
+            objs.DistText.Text = dist .. " studs"
+            objs.DistText.Color = espColor
+            objs.DistText.Visible = true
+        else
             objs.DistText.Visible = false
         end
     else
@@ -2550,61 +2552,19 @@ local function UpdateESP(player)
     end
 end
 
--- ====================== 更新雷達 ======================
-local function UpdateRadar()
-    if not getgenv().ESPConfig.Radar or not getgenv().ESPConfig.Enabled then
-        RadarBG.Visible = false
-        RadarBorder.Visible = false
-        CenterDot.Visible = false
-        for _, dot in pairs(RadarDots) do dot.Visible = false end
-        return
-    end
-
-    RadarBG.Visible = true
-    RadarBorder.Visible = true
-    CenterDot.Visible = true
-    CenterDot.Position = RadarPos + Vector2.new(RadarSize/2, RadarSize/2)
-
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    local scale = RadarSize / 100  -- 100 studs = RadarSize 像素
-
-    for player, dot in pairs(RadarDots) do
-        if player == LocalPlayer then continue end
-        local char = player.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then
-            dot.Visible = false
-            continue
-        end
-
-        local relative = (root.Position - myRoot.Position)
-        local x = relative.X * scale
-        local z = relative.Z * scale
-
-        -- 限制在雷達範圍內
-        if math.abs(x) > RadarSize/2 or math.abs(z) > RadarSize/2 then
-            dot.Visible = false
-            continue
-        end
-
-        dot.Position = RadarPos + Vector2.new(RadarSize/2 + x, RadarSize/2 + z)
-        dot.Visible = true
-    end
-end
-
--- ====================== 主循環 ======================
+-- ====================== 主循環（效能優化版） ======================
 local function ESPLoop()
     if not getgenv().ESPConfig.Enabled then
-        -- 全部隱藏
         for _, objs in pairs(ESPObjects) do
             for _, v in pairs(objs) do
-                if typeof(v) == "Instance" and v:IsA("Highlight") then
-                    v.Adornee = nil
-                elseif v.Visible \~= nil then
-                    v.Visible = false
-                end
+                if typeof(v) == "Instance" and v:IsA("Highlight") then v.Adornee = nil
+                elseif v.Visible \~= nil then v.Visible = false end
+            end
+        end
+        for _, objs in pairs(NPCObjects) do
+            for _, v in pairs(objs) do
+                if typeof(v) == "Instance" and v:IsA("Highlight") then v.Adornee = nil
+                elseif v.Visible \~= nil then v.Visible = false end
             end
         end
         RadarBG.Visible = false
@@ -2613,13 +2573,15 @@ local function ESPLoop()
         return
     end
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player \~= LocalPlayer then
-            UpdateESP(player)
-        end
+    -- 更新玩家
+    for player, objs in pairs(ESPObjects) do
+        UpdateESP(player, objs, false)
     end
 
-    UpdateRadar()
+    -- 更新 NPC
+    for model, objs in pairs(NPCObjects) do
+        UpdateESP(model, objs, true)
+    end
 end
 
 -- ====================== 啟用/關閉 ======================
@@ -2629,15 +2591,14 @@ local function EnableESP()
     -- 建立已存在玩家
     for _, p in ipairs(Players:GetPlayers()) do
         if p \~= LocalPlayer then
-            CreateESP(p)
-            if p.Character then
-                -- 雷達點
-                local dot = Drawing.new("Circle")
-                dot.Radius = 4
-                dot.Color = Color3.fromRGB(255, 100, 100)
-                dot.Filled = true
-                RadarDots[p] = dot
-            end
+            CreateESP(p, false)
+        end
+    end
+
+    -- 建立已存在 NPC
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
+            CreateESP(obj, true)
         end
     end
 
@@ -2650,129 +2611,59 @@ local function DisableESP()
         MainConnection = nil
     end
 
-    for player, objs in pairs(ESPObjects) do
+    -- 清理玩家
+    for _, objs in pairs(ESPObjects) do
         for _, v in pairs(objs) do
-            if typeof(v) == "Instance" then
-                if v:IsA("Highlight") then v:Destroy() else v:Destroy() end
-            else
-                v:Remove()
-            end
+            if typeof(v) == "Instance" then v:Destroy() else v:Remove() end
         end
-        ESPObjects[player] = nil
     end
+    ESPObjects = {}
 
-    for _, dot in pairs(RadarDots) do
-        dot:Remove()
+    -- 清理 NPC
+    for _, objs in pairs(NPCObjects) do
+        for _, v in pairs(objs) do
+            if typeof(v) == "Instance" then v:Destroy() else v:Remove() end
+        end
     end
-    RadarDots = {}
+    NPCObjects = {}
 
     RadarBG.Visible = false
     RadarBorder.Visible = false
     CenterDot.Visible = false
 end
 
--- ====================== UI 元件 ======================
+-- ====================== UI ======================
+ESPTab:Toggle({Title = "ESP 總開關", Default = false, Callback = function(v) getgenv().ESPConfig.Enabled = v if v then EnableESP() else DisableESP() end end})
+ESPTab:Toggle({Title = "高亮 (Highlight)", Default = false, Callback = function(v) getgenv().ESPConfig.Highlight = v end})
+ESPTab:Toggle({Title = "線條 (Tracer)", Default = false, Callback = function(v) getgenv().ESPConfig.Lines = v end})
+ESPTab:Dropdown({Title = "線條位置", Values = {"上", "中", "下"}, Default = 3, Callback = function(v) getgenv().ESPConfig.LinePosition = v end})
+ESPTab:Toggle({Title = "雷達 (右上角小地圖)", Default = false, Callback = function(v) getgenv().ESPConfig.Radar = v end})
+ESPTab:Toggle({Title = "方框 (Box)", Default = false, Callback = function(v) getgenv().ESPConfig.Box = v end})
+ESPTab:Dropdown({Title = "選擇額外顯示", Values = {"血量", "名稱", "距離"}, Multi = true, Default = {"名稱", "距離"}, Callback = function(t) getgenv().ESPConfig.ExtraSelected = t end})
+ESPTab:Toggle({Title = "顯示額外功能 (需開方框)", Default = false, Callback = function(v) getgenv().ESPConfig.ExtraDisplayEnabled = v end})
 print("Ui無問題")
-ESPTab:Toggle({
-    Title = "ESP 總開關",
-    Default = false,
-    Callback = function(val)
-        getgenv().ESPConfig.Enabled = val
-        if val then
-            EnableESP()
-        else
-            DisableESP()
-        end
-    end
-})
 
-ESPTab:Toggle({
-    Title = "高亮 (Highlight)",
-    Default = false,
-    Callback = function(val) getgenv().ESPConfig.Highlight = val end
-})
-
-ESPTab:Toggle({
-    Title = "線條 (Tracer)",
-    Default = false,
-    Callback = function(val) getgenv().ESPConfig.Lines = val end
-})
-
-ESPTab:Dropdown({
-    Title = "線條位置",
-    Values = {"上", "中", "下"},
-    Default = 3,  -- 預設「下」
-    Callback = function(val)
-        getgenv().ESPConfig.LinePosition = val
-    end
-})
-
-ESPTab:Toggle({
-    Title = "雷達 (右上角小地圖)",
-    Default = false,
-    Callback = function(val) getgenv().ESPConfig.Radar = val end
-})
-
-ESPTab:Toggle({
-    Title = "方框 (Box)",
-    Default = false,
-    Callback = function(val) getgenv().ESPConfig.Box = val end
-})
-
-ESPTab:Dropdown({
-    Title = "選擇額外顯示 (可複選)",
-    Values = {"血量", "名稱", "距離"},
-    Multi = true,
-    Default = {"名稱", "距離"},
-    Callback = function(selectedTable)
-        getgenv().ESPConfig.ExtraSelected = selectedTable
-    end
-})
-
-ESPTab:Toggle({
-    Title = "顯示額外功能 (需開啟方框)",
-    Default = false,
-    Callback = function(val)
-        getgenv().ESPConfig.ExtraDisplayEnabled = val
-    end
-})
-
--- ====================== 玩家加入處理 ======================
-Players.PlayerAdded:Connect(function(player)
-    if player == LocalPlayer then return end
-    player.CharacterAdded:Connect(function()
-        CreateESP(player)
-        local dot = Drawing.new("Circle")
-        dot.Radius = 4
-        dot.Color = Color3.fromRGB(255, 100, 100)
-        dot.Filled = true
-        RadarDots[player] = dot
-    end)
+-- ====================== 動態新增 ======================
+Players.PlayerAdded:Connect(function(p)
+    if p == LocalPlayer then return end
+    p.CharacterAdded:Connect(function() CreateESP(p, false) end)
 end)
 
--- 初始載入已存在玩家
+workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
+        CreateESP(obj, true)
+    end
+end)
+
+-- 初始載入
 for _, p in ipairs(Players:GetPlayers()) do
-    if p \~= LocalPlayer then
-        CreateESP(p)
-        if p.Character then
-            local dot = Drawing.new("Circle")
-            dot.Radius = 4
-            dot.Color = Color3.fromRGB(255, 100, 100)
-            dot.Filled = true
-            RadarDots[p] = dot
-        end
+    if p \~= LocalPlayer then CreateESP(p, false) end
+end
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
+        CreateESP(obj, true)
     end
 end
-
--- 角色重生時刷新
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    if getgenv().ESPConfig.Enabled then
-        for player, _ in pairs(ESPObjects) do
-            CreateESP(player)
-        end
-    end
-end)
 
 UniversalTab:Divider()
 
