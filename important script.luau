@@ -2281,6 +2281,759 @@ UniversalTab:Button({
     end
 })
 
+UniversalTab:Divider()
+
+-- =============================================
+-- UniversalTab - 通用功能 Tab
+-- 目前功能：強制第三人稱視角
+-- =============================================
+
+local UniversalTab = library:AddTab("Universal")
+
+-- ====================== 配置 ======================
+getgenv().UniversalConfig = {
+    ForceThirdPerson = false,
+    MaxZoomDistance = 400,       -- 越大越能拉遠（400\~1000 通常夠用）
+    MinZoomDistance = 0.5,       -- 設小一點避免卡第一人稱
+    LockCameraMode = true        -- 是否強制鎖定 Classic 模式
+}
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local OriginalMaxZoom = nil
+local OriginalMinZoom = nil
+local OriginalCameraMode = nil
+
+-- ====================== 強制第三人稱函數 ======================
+local function ForceThirdPerson(enable)
+    if not LocalPlayer then return end
+    
+    if enable then
+        -- 記住原始值（只記一次）
+        if not OriginalMaxZoom then
+            OriginalMaxZoom = LocalPlayer.CameraMaxZoomDistance
+            OriginalMinZoom = LocalPlayer.CameraMinZoomDistance
+            OriginalCameraMode = LocalPlayer.CameraMode
+        end
+        
+        -- 強制修改
+        LocalPlayer.CameraMaxZoomDistance = getgenv().UniversalConfig.MaxZoomDistance
+        LocalPlayer.CameraMinZoomDistance = getgenv().UniversalConfig.MinZoomDistance
+        
+        if getgenv().UniversalConfig.LockCameraMode then
+            LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        end
+        
+        -- 立刻拉遠一點，避免還卡在第一人稱
+        task.spawn(function()
+            task.wait(0.1)
+            if Camera then
+                Camera.CameraType = Enum.CameraType.Custom
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position + Vector3.new(0, 2, 0), Camera.Focus.Position)
+            end
+        end)
+    else
+        -- 恢復原始設定
+        if OriginalMaxZoom then
+            LocalPlayer.CameraMaxZoomDistance = OriginalMaxZoom
+            LocalPlayer.CameraMinZoomDistance = OriginalMinZoom
+            LocalPlayer.CameraMode = OriginalCameraMode or Enum.CameraMode.Classic
+        end
+    end
+end
+
+-- ====================== 持續強制（防遊戲重設） ======================
+local function ThirdPersonLoop()
+    if not getgenv().UniversalConfig.ForceThirdPerson then return end
+    
+    pcall(function()
+        if LocalPlayer.CameraMaxZoomDistance \~= getgenv().UniversalConfig.MaxZoomDistance then
+            LocalPlayer.CameraMaxZoomDistance = getgenv().UniversalConfig.MaxZoomDistance
+        end
+        if LocalPlayer.CameraMinZoomDistance \~= getgenv().UniversalConfig.MinZoomDistance then
+            LocalPlayer.CameraMinZoomDistance = getgenv().UniversalConfig.MinZoomDistance
+        end
+        if getgenv().UniversalConfig.LockCameraMode and LocalPlayer.CameraMode \~= Enum.CameraMode.Classic then
+            LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        end
+    end)
+end
+
+-- ====================== UI 元件 ======================
+UniversalTab:Toggle({
+    Title = "強制第三人稱視角",
+    Default = false,
+    Callback = function(val)
+        getgenv().UniversalConfig.ForceThirdPerson = val
+        ForceThirdPerson(val)
+        
+        if val then
+            -- 啟動持續強制循環
+            if not getgenv().ThirdPersonConnection then
+                getgenv().ThirdPersonConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    if getgenv().UniversalConfig.ForceThirdPerson then
+                        ThirdPersonLoop()
+                    else
+                        if getgenv().ThirdPersonConnection then
+                            getgenv().ThirdPersonConnection:Disconnect()
+                            getgenv().ThirdPersonConnection = nil
+                        end
+                    end
+                end)
+            end
+        else
+            -- 關閉時恢復
+            if getgenv().ThirdPersonConnection then
+                getgenv().ThirdPersonConnection:Disconnect()
+                getgenv().ThirdPersonConnection = nil
+            end
+            ForceThirdPerson(false)
+        end
+    end
+})
+
+UniversalTab:Slider({
+    Title = "最大拉遠距離",
+    Min = 100,
+    Max = 1000,
+    Default = 400,
+    Rounding = 0,
+    Callback = function(val)
+        getgenv().UniversalConfig.MaxZoomDistance = val
+        if getgenv().UniversalConfig.ForceThirdPerson then
+            LocalPlayer.CameraMaxZoomDistance = val
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "鎖定 Classic 模式",
+    Default = true,
+    Callback = function(val)
+        getgenv().UniversalConfig.LockCameraMode = val
+        if getgenv().UniversalConfig.ForceThirdPerson then
+            LocalPlayer.CameraMode = val and Enum.CameraMode.Classic or OriginalCameraMode
+        end
+    end
+})
+
+-- 可選：最小距離調整（通常不需要動）
+-- UniversalTab:Slider({... MinZoomDistance ...})
+
+-- 玩家重生時自動重新套用
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if getgenv().UniversalConfig.ForceThirdPerson then
+        ForceThirdPerson(true)
+    end
+end)
+
+-- 遊戲剛載入時如果已開啟，也套用一次
+task.spawn(function()
+    task.wait(1)
+    if getgenv().UniversalConfig.ForceThirdPerson then
+        ForceThirdPerson(true)
+    end
+end)
+
+UniversalTab:Divider()
+-- =============================================
+-- World Vision (Fullbright + NoFog 整合版)
+-- =============================================
+
+-- ====================== World Vision 配置 ======================
+getgenv().WorldVisionConfig = {
+    Enabled = false,
+    UseHook = true,                  -- hookmetamethod 加強防偵測
+    FullbrightBrightness = 3,        -- 亮度（建議 1\~5）
+    NoFog = true,                    -- 是否移除霧氣
+    FogEndValue = 100000,            -- 極大值 = 幾乎無霧
+    AtmosphereDensity = 0,           -- 如果遊戲用 Atmosphere，設 0 去霧
+    ExtraVibrance = true,            -- 額外加一點顏色鮮豔（可選）
+    VibranceSaturation = 0.3,        -- 顏色飽和度加成
+    VibranceContrast = 0.2           -- 對比加成
+}
+
+local Lighting = game:GetService("Lighting")
+local oldProps = {}                  -- 儲存原始屬性
+
+-- 記錄原始 Lighting / Atmosphere 值
+local function SaveOriginalProps()
+    if next(oldProps) == nil then
+        oldProps.Brightness = Lighting.Brightness
+        oldProps.Ambient = Lighting.Ambient
+        oldProps.OutdoorAmbient = Lighting.OutdoorAmbient
+        oldProps.FogEnd = Lighting.FogEnd
+        oldProps.FogStart = Lighting.FogStart
+        oldProps.ClockTime = Lighting.ClockTime
+
+        local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+        if atm then
+            oldProps.AtmDensity = atm.Density
+            oldProps.AtmOffset = atm.Offset
+            oldProps.AtmColor = atm.Color
+        end
+    end
+end
+
+-- 基本 World Vision 套用（直接改屬性）
+local function ApplyWorldVision(enable)
+    SaveOriginalProps()
+    if enable then
+        -- Fullbright 部分
+        Lighting.Brightness       = getgenv().WorldVisionConfig.FullbrightBrightness
+        Lighting.Ambient          = Color3.new(1,1,1)
+        Lighting.OutdoorAmbient   = Color3.new(1,1,1)
+        Lighting.ClockTime        = 14  -- 中午光線
+
+        -- NoFog 部分
+        if getgenv().WorldVisionConfig.NoFog then
+            Lighting.FogEnd   = getgenv().WorldVisionConfig.FogEndValue
+            Lighting.FogStart = 0
+
+            -- 如果有 Atmosphere，也去霧
+            local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+            if atm then
+                atm.Density = getgenv().WorldVisionConfig.AtmosphereDensity
+            end
+        end
+
+        -- 額外顏色增強（讓世界更「視覺化」）
+        if getgenv().WorldVisionConfig.ExtraVibrance then
+            local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
+            cc.Enabled     = true
+            cc.Saturation  = getgenv().WorldVisionConfig.VibranceSaturation
+            cc.Contrast    = getgenv().WorldVisionConfig.VibranceContrast
+            cc.Brightness  = 0.1
+        end
+    else
+        -- 恢復原始
+        if next(oldProps) \~= nil then
+            Lighting.Brightness     = oldProps.Brightness
+            Lighting.Ambient        = oldProps.Ambient
+            Lighting.OutdoorAmbient = oldProps.OutdoorAmbient
+            Lighting.FogEnd         = oldProps.FogEnd
+            Lighting.FogStart       = oldProps.FogStart
+            Lighting.ClockTime      = oldProps.ClockTime
+
+            local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+            if atm and oldProps.AtmDensity then
+                atm.Density = oldProps.AtmDensity
+            end
+
+            -- 關閉 ColorCorrection
+            local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+            if cc then cc.Enabled = false end
+        end
+    end
+end
+
+local hookConn = nil  -- 用來標記 hook 是否活躍（這裡實際上 hookmetamethod 是持久的，不需要 Disconnect，但保留變數方便管理）
+
+local function ApplyHookWorldVision(enable)
+    if not enable or not getgenv().WorldVisionConfig.UseHook then
+        -- 因為 hookmetamethod 是全局的，關閉時我們無法「真正移除」hook，
+        -- 但可以透過一個旗標讓 hook 內部判斷是否還要強制套用值
+        getgenv().WorldVisionHookActive = false
+        return
+    end
+
+    -- 已經開啟過就不重複 hook
+    if getgenv().WorldVisionHookActive then
+        return
+    end
+
+    getgenv().WorldVisionHookActive = true
+
+    -- 保存原始的 metamethod（只 hook 一次）
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if checkcaller() then
+            return oldIndex(self, key)
+        end
+
+        -- 只針對 Lighting 物件或其子物件 (Atmosphere)
+        if self == Lighting or (self:IsA("Atmosphere") and self.Parent == Lighting) then
+            if key == "Brightness" then
+                return getgenv().WorldVisionConfig.FullbrightBrightness
+            elseif key == "Ambient" or key == "OutdoorAmbient" then
+                return Color3.new(1, 1, 1)
+            elseif key == "FogEnd" then
+                return getgenv().WorldVisionConfig.FogEndValue
+            elseif key == "FogStart" then
+                return 0
+            elseif key == "ClockTime" then
+                return 14
+            elseif key == "Density" and self:IsA("Atmosphere") then
+                return getgenv().WorldVisionConfig.AtmosphereDensity or 0
+            end
+        end
+
+        return oldIndex(self, key)
+    end))
+
+    local oldNewIndex
+    oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, value)
+        if checkcaller() then
+            return oldNewIndex(self, key, value)
+        end
+
+        -- 遊戲試圖修改這些屬性 → 我們強制忽略或改回我們想要的值
+        if self == Lighting or (self:IsA("Atmosphere") and self.Parent == Lighting) then
+            if key == "Brightness"
+            or key == "Ambient"
+            or key == "OutdoorAmbient"
+            or key == "FogEnd"
+            or key == "FogStart"
+            or key == "ClockTime"
+            or (key == "Density" and self:IsA("Atmosphere")) then
+                -- 直接忽略遊戲的寫入（最常見做法）
+                -- 或者你可以強制設成我們的值： return oldNewIndex(self, key, 我們的值)
+                return  -- 忽略寫入，讓遊戲以為成功但實際沒變
+            end
+        end
+
+        return oldNewIndex(self, key, value)
+    end))
+
+    -- 標記已 hook 完成
+    hookConn = true  -- 只是個旗標，實際上 hookmetamethod 沒有 Disconnect 方法
+end
+
+-- 持續強制循環（防遊戲重設）
+local function WorldVisionLoop()
+    if not getgenv().WorldVisionConfig.Enabled then return end
+    ApplyWorldVision(true)
+end
+
+-- ====================== UI 元件（加到 UniversalTab） ======================
+UniversalTab:Toggle({
+    Title = "highlight",
+    Default = false,
+    Callback = function(val)
+        getgenv().WorldVisionConfig.Enabled = val
+        if val then
+            SaveOriginalProps()
+            ApplyWorldVision(true)
+            if getgenv().WorldVisionConfig.UseHook then
+                ApplyHookWorldVision(true)
+            end
+
+            -- 啟動循環
+            if not getgenv().WorldVisionConn then
+                getgenv().WorldVisionConn = game:GetService("RunService").Heartbeat:Connect(WorldVisionLoop)
+            end
+        else
+            ApplyWorldVision(false)
+            ApplyHookWorldVision(false)
+            if getgenv().WorldVisionConn then
+                getgenv().WorldVisionConn:Disconnect()
+                getgenv().WorldVisionConn = nil
+            end
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "NoFog (移除霧氣)",
+    Default = true,
+    Callback = function(val)
+        getgenv().WorldVisionConfig.NoFog = val
+        if getgenv().WorldVisionConfig.Enabled then
+            ApplyWorldVision(true)
+        end
+    end
+})
+
+UniversalTab:Slider({
+    Title = "亮度 (Brightness)",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Rounding = 1,
+    Callback = function(val)
+        getgenv().WorldVisionConfig.FullbrightBrightness = val
+        if getgenv().WorldVisionConfig.Enabled then
+            ApplyWorldVision(true)
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "hook版",
+    Default = true,
+    Callback = function(val)
+        getgenv().WorldVisionConfig.UseHook = val
+        if getgenv().WorldVisionConfig.Enabled then
+            ApplyHookWorldVision(val)
+        end
+    end
+})
+
+UniversalTab:Button({
+    Title = "恢復原始設定",
+    Callback = function()
+        getgenv().WorldVisionConfig.Enabled = false
+        ApplyWorldVision(false)
+        ApplyHookWorldVision(false)
+        if getgenv().WorldVisionConn then
+            getgenv().WorldVisionConn:Disconnect()
+            getgenv().WorldVisionConn = nil
+        end
+    end
+})
+
+-- 自動套用於重生
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    if getgenv().WorldVisionConfig.Enabled then
+        ApplyWorldVision(true)
+    end
+end)
+
+UniversalTab:Divider()
+
+-- =============================================
+-- UniversalTab - 擊殺 / 傷害播報 (進階版)
+-- =============================================
+
+-- ====================== 配置 ======================
+getgenv().HitLogConfig = {
+    Enabled = false,
+    DamageLogEnabled = true,       -- 左上：自己傷害播報
+    KillLogEnabled = true,         -- 右上：全域擊殺播報
+    Duration = 3.2,
+    MaxEntriesDamage = 7,
+    MaxEntriesKill = 5,
+    AttackSoundId = "rbxassetid://82689852573606",  -- 預設第一個
+}
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+local LocalPlayer = Players.LocalPlayer
+
+local DamageGui = nil          -- 左上：自己傷害
+local KillGui = nil            -- 右上：全域擊殺
+local DamageEntries = {}
+local KillEntries = {}
+local Spacing = 34
+local DamageBaseY = 60
+local KillBaseY = 60
+local DamageBaseX = 20         -- 左側
+local KillBaseX = -420         -- 右側（負值從右邊開始）
+
+-- ====================== 建立兩個 GUI ======================
+local function CreateGUIs()
+    if not DamageGui then
+        DamageGui = Instance.new("ScreenGui")
+        DamageGui.Name = "DamageHitLog"
+        DamageGui.ResetOnSpawn = false
+        DamageGui.Parent = game.CoreGui
+    end
+
+    if not KillGui then
+        KillGui = Instance.new("ScreenGui")
+        KillGui.Name = "KillLog"
+        KillGui.ResetOnSpawn = false
+        KillGui.Parent = game.CoreGui
+    end
+end
+
+-- ====================== 建立單條通知 (共用函數) ======================
+local function CreateNotification(parentGui, textParts, isKillLog)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 400, 0, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BackgroundTransparency = 0.4
+    frame.BorderSizePixel = 0
+    frame.Parent = parentGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -16, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextSize = 15
+    label.Font = Enum.Font.GothamSemibold
+    label.RichText = true
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Parent = frame
+
+    -- 組合 RichText
+    label.Text = table.concat(textParts, "")
+
+    return frame
+end
+
+-- ====================== 顯示自己造成的傷害 (左上) ======================
+local function ShowDamageLog(targetName, damage, toolName)
+    if not getgenv().HitLogConfig.DamageLogEnabled then return end
+
+    damage = math.floor(damage)
+    local playerName = LocalPlayer.Name
+    local toolDisplay = toolName or "Unknown"
+
+    local textParts = {
+        "[ <font color='rgb(255,105,180)'>", playerName, "</font> use <font color='rgb(200,200,255)'>", toolDisplay,
+        "</font> hit <font color='rgb(255,105,180)'>", targetName, "</font> by <font color='rgb(255,100,100)'>", tostring(damage), "</font> damage ]"
+    }
+
+    local frame = CreateNotification(DamageGui, textParts, false)
+
+    table.insert(DamageEntries, 1, {frame = frame})
+
+    if #DamageEntries > getgenv().HitLogConfig.MaxEntriesDamage then
+        local old = table.remove(DamageEntries, #DamageEntries)
+        old.frame:Destroy()
+    end
+
+    -- 動畫
+    for i, entry in ipairs(DamageEntries) do
+        local targetY = DamageBaseY + (i-1) * Spacing
+        local targetPos = UDim2.new(0, DamageBaseX, 0, targetY)
+
+        if i == 1 then
+            frame.Position = UDim2.new(0, -500, 0, targetY)
+            TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+        else
+            TweenService:Create(entry.frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = targetPos}):Play()
+        end
+    end
+
+    -- 出場
+    task.delay(getgenv().HitLogConfig.Duration, function()
+        if not frame.Parent then return end
+        local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+            Position = UDim2.new(0, 600, 0, frame.Position.Y.Offset),
+            BackgroundTransparency = 1
+        })
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
+            for i, entry in ipairs(DamageEntries) do
+                if entry.frame == frame then
+                    table.remove(DamageEntries, i)
+                    frame:Destroy()
+                    -- 後面補位
+                    for j = i, #DamageEntries do
+                        local e = DamageEntries[j]
+                        local ny = DamageBaseY + (j-1) * Spacing
+                        TweenService:Create(e.frame, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {Position = UDim2.new(0, DamageBaseX, 0, ny)}):Play()
+                    end
+                    break
+                end
+            end
+        end)
+    end)
+
+    -- 播放攻擊音效
+    if getgenv().HitLogConfig.AttackSoundId then
+        local sound = Instance.new("Sound")
+        sound.SoundId = getgenv().HitLogConfig.AttackSoundId
+        sound.Volume = 0.6
+        sound.Parent = SoundService
+        sound:Play()
+        game.Debris:AddItem(sound, 4)
+    end
+end
+
+-- ====================== 顯示全域擊殺 (右上) ======================
+local function ShowKillLog(killerName, victimName, toolName)
+    if not getgenv().HitLogConfig.KillLogEnabled then return end
+
+    local toolDisplay = toolName or "Unknown"
+
+    local textParts = {
+        "[ <font color='rgb(255,105,180)'>", killerName, "</font> kill <font color='rgb(255,105,180)'>", victimName,
+        "</font> by <font color='rgb(220,220,150)'>", toolDisplay, "</font> ]"
+    }
+
+    local frame = CreateNotification(KillGui, textParts, true)
+
+    table.insert(KillEntries, 1, {frame = frame})
+
+    if #KillEntries > getgenv().HitLogConfig.MaxEntriesKill then
+        local old = table.remove(KillEntries, #KillEntries)
+        old.frame:Destroy()
+    end
+
+    for i, entry in ipairs(KillEntries) do
+        local targetY = KillBaseY + (i-1) * Spacing
+        local targetPos = UDim2.new(1, KillBaseX, 0, targetY)  -- 右側對齊
+
+        if i == 1 then
+            frame.Position = UDim2.new(1, 500, 0, targetY)
+            TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+        else
+            TweenService:Create(entry.frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = targetPos}):Play()
+        end
+    end
+
+    task.delay(getgenv().HitLogConfig.Duration + 0.5, function()
+        if not frame.Parent then return end
+        local tweenOut = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, -600, 0, frame.Position.Y.Offset),
+            BackgroundTransparency = 1
+        })
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
+            for i, entry in ipairs(KillEntries) do
+                if entry.frame == frame then
+                    table.remove(KillEntries, i)
+                    frame:Destroy()
+                    for j = i, #KillEntries do
+                        local e = KillEntries[j]
+                        local ny = KillBaseY + (j-1) * Spacing
+                        TweenService:Create(e.frame, TweenInfo.new(0.35), {Position = UDim2.new(1, KillBaseX, 0, ny)}):Play()
+                    end
+                    break
+                end
+            end
+        end)
+    end)
+end
+
+-- ====================== 傷害 & 擊殺偵測 (通用 + 工具名稱) ======================
+local function SetupHitDetection()
+    local function OnCharacterAdded(char)
+        task.wait(0.2)
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        -- 監聽自己造成的傷害（透過工具的 Handle 或 Activated 事件）
+        local lastTool = nil
+
+        char.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then
+                lastTool = child
+                -- 監聽工具激活（可更精準，但這裡簡化用 HealthChanged + 工具判斷）
+            end
+        end)
+
+        humanoid.HealthChanged:Connect(function(health)
+            -- 這裡是受害者視角，無法直接知道誰打的
+            -- 所以我們改用另一種常見方式：監聽其他玩家的 Humanoid 掉血，並檢查 LocalPlayer 的工具
+        end)
+    end
+
+    -- 更可靠的方式：監聽所有玩家的 Humanoid.HealthChanged
+    local function MonitorPlayer(plr)
+        if plr == LocalPlayer then return end
+
+        plr.CharacterAdded:Connect(function(char)
+            task.wait(0.3)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum then return end
+
+            local lastHealth = hum.Health
+
+            hum.HealthChanged:Connect(function(newHealth)
+                if newHealth >= lastHealth then
+                    lastHealth = newHealth
+                    return
+                end
+
+                local dmg = math.floor(lastHealth - newHealth)
+                if dmg < 1 then return end
+
+                -- 假設最近使用的工具是造成傷害的（簡易判斷）
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local toolName = tool and tool.Name or "Hand"
+
+                ShowDamageLog(plr.Name, dmg, toolName)
+
+                lastHealth = newHealth
+            end)
+
+            -- 擊殺
+            hum.Died:Connect(function()
+                local killerTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local killerToolName = killerTool and killerTool.Name or "Unknown"
+
+                -- 這裡假設是自己殺的（因為我們只在掉血時記錄最近工具）
+                -- 如果想更精準，需要 hook RemoteEvent 或 Tag 系統
+                ShowKillLog(LocalPlayer.Name, plr.Name, killerToolName)
+            end)
+        end)
+
+        if plr.Character then
+            plr.CharacterAdded:Fire(plr.Character)
+        end
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        MonitorPlayer(plr)
+    end
+
+    Players.PlayerAdded:Connect(MonitorPlayer)
+end
+
+-- ====================== UI ======================
+CreateGUIs()  -- 先建立好
+
+UniversalTab:Toggle({
+    Title = "傷害/擊殺播報系統",
+    Default = false,
+    Callback = function(val)
+        getgenv().HitLogConfig.Enabled = val
+        if val then
+            SetupHitDetection()  -- 只註冊一次
+        else
+            -- 清空
+            for _, e in ipairs(DamageEntries) do if e.frame then e.frame:Destroy() end end
+            for _, e in ipairs(KillEntries) do if e.frame then e.frame:Destroy() end end
+            DamageEntries = {}
+            KillEntries = {}
+        end
+    end
+})
+
+UniversalTab:Toggle({
+    Title = "顯示自己傷害 (左上)",
+    Default = true,
+    Callback = function(v) getgenv().HitLogConfig.DamageLogEnabled = v end
+})
+
+UniversalTab:Toggle({
+    Title = "顯示全域擊殺 (右上)",
+    Default = true,
+    Callback = function(v) getgenv().HitLogConfig.KillLogEnabled = v end
+})
+
+UniversalTab:Dropdown({
+    Title = "攻擊語音",
+    Values = {"Sound 1 (82689852573606)", "Sound 2 (83717596220569)"},
+    Default = 1,
+    Callback = function(selected)
+        if selected == "Sound 1 (82689852573606)" then
+            getgenv().HitLogConfig.AttackSoundId = "rbxassetid://82689852573606"
+        else
+            getgenv().HitLogConfig.AttackSoundId = "rbxassetid://83717596220569"
+        end
+    end
+})
+
+UniversalTab:Button({
+    Title = "測試傷害 & 擊殺",
+    Callback = function()
+        ShowDamageLog("TestDummy", 58, "Knife")
+        task.wait(0.8)
+        ShowDamageLog("ProPlayer", 125, "AK-47")
+        task.wait(1.2)
+        ShowKillLog("You", "EnemyNoob", "Sword")
+        task.wait(0.7)
+        ShowKillLog("SweatyKid", "AnotherNoob", "Gun")
+    end
+})
+
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
