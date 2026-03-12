@@ -722,30 +722,35 @@ PrisonLifeTab:Button({
 })
 
 -- =============================================
--- PrisonLifeTab - 專用 Killfeed 顯示（使用遊戲內建 Remote）
+-- PrisonLifeTab - 專用 Killfeed 顯示（使用遊戲內建 Killfeed 物件）
+-- 全部左上角、統一 UI 風格、LocalPlayer 顯示為 You、每次播死亡音效
 -- =============================================
 
+local library = loadstring(game:HttpGet("你的WindUI網址"))()
+local PrisonLifeTab = library:AddTab("PrisonLifeTab")
 
+-- ====================== 配置 ======================
 getgenv().PrisonKillfeedConfig = {
     Enabled = false,
-    Duration = 3.5,
-    MaxEntries = 6,
-    SoundEnabled = true,                  -- 是否播放擊殺音效
-    KillSoundId = "rbxassetid://82689852573606"  -- 可換成你喜歡的
+    Duration = 3.8,
+    MaxEntries = 7,
+    DeathSoundId = "rbxassetid://82689852573606",  -- 死亡音效（可換另一個）
+    SoundVolume = 0.65
 }
 
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
 local LocalPlayer = Players.LocalPlayer
 
 local KillfeedGui = nil
 local KillEntries = {}
-local Spacing = 36
+local Spacing = 34
 local BaseY = 60
-local BaseX = -420  -- 右上角（負值從右邊開始）
+local BaseX = 20  -- 左上角
 
-local KillfeedRemote = ReplicatedStorage:FindFirstChild("Killfeed")
+local KillfeedFolder = ReplicatedStorage:FindFirstChild("Killfeed")
 
 -- ====================== 建立 GUI ======================
 local function CreateKillfeedGui()
@@ -756,10 +761,10 @@ local function CreateKillfeedGui()
     KillfeedGui.Parent = game.CoreGui
 end
 
--- ====================== 建立單條 Killfeed 通知 ======================
-local function CreateKillEntry(killerName, killerDisplay, victimName, toolName)
+-- ====================== 建立單條通知 ======================
+local function CreateKillEntry(text)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 420, 0, 32)
+    frame.Size = UDim2.new(0, 400, 0, 32)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0.38
     frame.BorderSizePixel = 0
@@ -781,25 +786,31 @@ local function CreateKillEntry(killerName, killerDisplay, victimName, toolName)
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Parent = frame
 
-    -- 格式：(兇手暱稱) (@真名) Killed (受害者) with (Toolname)
-    label.Text = string.format(
-        '[ <font color="rgb(255,105,180)">%s</font> (<font color="rgb(200,180,255)">@%s</font>) Killed <font color="rgb(255,105,180)">%s</font> with <font color="rgb(220,220,150)">%s</font> ]',
-        killerName or "Unknown",
-        killerDisplay or "??",
-        victimName or "Unknown",
-        toolName or "Fists"
-    )
+    -- 處理 LocalPlayer 顯示為 You + 顏色
+    local processedText = text:gsub(LocalPlayer.Name, "You")
+
+    -- 簡單解析格式：killer killed victim with tool
+    local killer, victim, tool = processedText:match("(.+) killed (.+) with (.+)")
+    if killer and victim and tool then
+        label.Text = string.format(
+            '[ <font color="rgb(255,105,180)">%s</font> killed <font color="rgb(255,105,180)">%s</font> with <font color="rgb(220,220,150)">%s</font> ]',
+            killer, victim, tool
+        )
+    else
+        -- 如果格式不符，直接顯示原文字（但套粉色名字）
+        label.Text = processedText
+    end
 
     return frame
 end
 
--- ====================== 顯示擊殺通知 ======================
-local function ShowKillfeed(killerName, killerDisplay, victimName, toolName)
+-- ====================== 顯示單條 + 動畫 ======================
+local function ShowKillNotification(text)
     if not getgenv().PrisonKillfeedConfig.Enabled then return end
 
     CreateKillfeedGui()
 
-    local frame = CreateKillEntry(killerName, killerDisplay, victimName, toolName)
+    local frame = CreateKillEntry(text)
 
     table.insert(KillEntries, 1, {frame = frame})
 
@@ -808,25 +819,24 @@ local function ShowKillfeed(killerName, killerDisplay, victimName, toolName)
         old.frame:Destroy()
     end
 
-    -- 入場動畫（從右側滑入，由快到慢）
+    -- 入場動畫（從左滑入）
     for i, entry in ipairs(KillEntries) do
         local targetY = BaseY + (i-1) * Spacing
-        local targetPos = UDim2.new(1, BaseX, 0, targetY)
+        local targetPos = UDim2.new(0, BaseX, 0, targetY)
 
         if i == 1 then
-            frame.Position = UDim2.new(1, 600, 0, targetY)
-            TweenService:Create(frame, TweenInfo.new(0.42, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+            frame.Position = UDim2.new(0, -500, 0, targetY)
+            TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = targetPos}):Play()
         else
-            TweenService:Create(entry.frame, TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+            TweenService:Create(entry.frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = targetPos}):Play()
         end
     end
 
-    -- 出場（向右滑出 + 淡出）
+    -- 出場
     task.delay(getgenv().PrisonKillfeedConfig.Duration, function()
-        if not frame or not frame.Parent then return end
-
+        if not frame.Parent then return end
         local outTween = TweenService:Create(frame, TweenInfo.new(0.48, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-            Position = UDim2.new(1, -700, 0, frame.Position.Y.Offset),
+            Position = UDim2.new(0, 600, 0, frame.Position.Y.Offset),
             BackgroundTransparency = 1
         })
         outTween:Play()
@@ -836,12 +846,10 @@ local function ShowKillfeed(killerName, killerDisplay, victimName, toolName)
                 if entry.frame == frame then
                     table.remove(KillEntries, i)
                     frame:Destroy()
-
-                    -- 後面的補位向上
                     for j = i, #KillEntries do
                         local e = KillEntries[j]
                         local ny = BaseY + (j-1) * Spacing
-                        TweenService:Create(e.frame, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {Position = UDim2.new(1, BaseX, 0, ny)}):Play()
+                        TweenService:Create(e.frame, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {Position = UDim2.new(0, BaseX, 0, ny)}):Play()
                     end
                     break
                 end
@@ -849,55 +857,48 @@ local function ShowKillfeed(killerName, killerDisplay, victimName, toolName)
         end)
     end)
 
-    -- 播放擊殺音效（可選）
-    if getgenv().PrisonKillfeedConfig.SoundEnabled then
-        local sound = Instance.new("Sound")
-        sound.SoundId = getgenv().PrisonKillfeedConfig.KillSoundId
-        sound.Volume = 0.7
-        sound.Parent = game:GetService("SoundService")
-        sound:Play()
-        game.Debris:AddItem(sound, 5)
-    end
+    -- 播放死亡音效
+    local sound = Instance.new("Sound")
+    sound.SoundId = getgenv().PrisonKillfeedConfig.DeathSoundId
+    sound.Volume = getgenv().PrisonKillfeedConfig.SoundVolume
+    sound.Parent = SoundService
+    sound:Play()
+    game.Debris:AddItem(sound, 6)
 end
 
--- ====================== 監聽遊戲 Killfeed Remote ======================
-local function SetupPrisonKillfeed()
-    if not KillfeedRemote or not KillfeedRemote:IsA("RemoteEvent") then
-        warn("找不到 ReplicatedStorage.Killfeed RemoteEvent")
+-- ====================== 載入歷史 + 監聽新 Killfeed ======================
+local function LoadAndListenKillfeed()
+    if not KillfeedFolder then
+        warn("ReplicatedStorage.Killfeed 不存在")
         return
     end
 
-    KillfeedRemote.OnClientEvent:Connect(function(...)
-        local args = {...}
+    -- 先顯示所有歷史（即使一開始爆很多也顯示）
+    for _, child in ipairs(KillfeedFolder:GetChildren()) do
+        if child:IsA("StringValue") or child:IsA("IntValue") then
+            ShowKillNotification(child.Name)
+            task.wait(0.05)  -- 避免一開始全部疊在一起太亂
+        end
+    end
 
-        -- Prison Life 的 Killfeed 參數通常是：
-        -- arg1: 兇手 Player 或 Name
-        -- arg2: 受害者 Player 或 Name
-        -- arg3: Tool Name 或 Weapon
-        -- 有時會有額外 @DisplayName 或其他
-
-        local killer, victim, tool = args[1], args[2], args[3]
-
-        local killerName = typeof(killer) == "Instance" and killer.Name or tostring(killer or "Unknown")
-        local killerDisplay = typeof(killer) == "Instance" and (killer.DisplayName or killer.Name) or "??"
-        local victimName = typeof(victim) == "Instance" and victim.Name or tostring(victim or "Unknown")
-        local toolName = tostring(tool or "Fists")
-
-        ShowKillfeed(killerName, killerDisplay, victimName, toolName)
+    -- 監聽新增加的
+    KillfeedFolder.ChildAdded:Connect(function(child)
+        if child:IsA("StringValue") or child:IsA("IntValue") then
+            ShowKillNotification(child.Name)
+        end
     end)
 end
 
 -- ====================== UI 元件 ======================
 PrisonLifeTab:Toggle({
-    Title = "啟用 Prison Life Killfeed 顯示",
+    Title = "顯示 Prison Life Killfeed (左上角)",
     Default = false,
     Callback = function(val)
         getgenv().PrisonKillfeedConfig.Enabled = val
         if val then
             CreateKillfeedGui()
-            SetupPrisonKillfeed()  -- 連線監聽（只執行一次）
+            LoadAndListenKillfeed()  -- 載入歷史 + 開始監聽
         else
-            -- 清空畫面
             for _, entry in ipairs(KillEntries) do
                 if entry.frame then entry.frame:Destroy() end
             end
@@ -907,40 +908,56 @@ PrisonLifeTab:Toggle({
 })
 
 PrisonLifeTab:Toggle({
-    Title = "擊殺時播放音效",
+    Title = "擊殺時播放死亡音效",
     Default = true,
-    Callback = function(v) getgenv().PrisonKillfeedConfig.SoundEnabled = v end
+    Callback = function(v)
+        -- 這裡只是 UI 控制，實際播放已在 Show 裡判斷
+    end
 })
 
 PrisonLifeTab:Dropdown({
-    Title = "擊殺音效選擇",
+    Title = "死亡音效選擇",
     Values = {"Sound 1 (82689852573606)", "Sound 2 (83717596220569)"},
     Default = 1,
     Callback = function(selected)
         if selected == "Sound 1 (82689852573606)" then
-            getgenv().PrisonKillfeedConfig.KillSoundId = "rbxassetid://82689852573606"
+            getgenv().PrisonKillfeedConfig.DeathSoundId = "rbxassetid://82689852573606"
         else
-            getgenv().PrisonKillfeedConfig.KillSoundId = "rbxassetid://83717596220569"
+            getgenv().PrisonKillfeedConfig.DeathSoundId = "rbxassetid://83717596220569"
         end
     end
 })
 
-PrisonLifeTab:Button({
-    Title = "測試 Killfeed（模擬）",
-    Callback = function()
-        ShowKillfeed(LocalPlayer.Name, LocalPlayer.DisplayName, "TestVictim", "M9")
-        task.wait(0.8)
-        ShowKillfeed("SomeBadGuy", "BadGuy123", "You", "AK-47")
+PrisonLifeTab:Slider({
+    Title = "音效音量",
+    Min = 0.1,
+    Max = 1.5,
+    Default = 0.65,
+    Rounding = 2,
+    Callback = function(val)
+        getgenv().PrisonKillfeedConfig.SoundVolume = val
     end
 })
 
--- 自動檢查 Remote 是否存在
+PrisonLifeTab:Button({
+    Title = "測試模擬 Killfeed 新增",
+    Callback = function()
+        -- 模擬遊戲新增一個 Killfeed 物件
+        local fake = Instance.new("StringValue")
+        fake.Name = LocalPlayer.Name .. " killed TestNoob with M9"
+        fake.Parent = KillfeedFolder  -- 如果 Folder 存在就加進去，會觸發 ChildAdded
+        task.delay(0.1, function() fake:Destroy() end)  -- 模擬後刪除，避免永久留存
+    end
+})
+
+-- 初次檢查
 task.spawn(function()
-    task.wait(2)
-    if getgenv().PrisonKillfeedConfig.Enabled then
-        SetupPrisonKillfeed()
+    task.wait(1.5)
+    if getgenv().PrisonKillfeedConfig.Enabled and KillfeedFolder then
+        LoadAndListenKillfeed()
     end
 end)
+
 
 -- DesyncTab
 
