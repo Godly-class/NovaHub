@@ -927,10 +927,7 @@ PrisonLifeTab:Dropdown({
 
 PrisonLifeTab:Slider({
     Title = "音效音量",
-    Min = 0.1,
-    Max = 1.5,
-    Default = 0.65,
-    Rounding = 2,
+    Value = { Min = 0, Max = 1, Default = 0.1, Step = 1 },
     Callback = function(val)
         getgenv().PrisonKillfeedConfig.SoundVolume = val
     end
@@ -2629,10 +2626,7 @@ UniversalTab:Toggle({
 
 UniversalTab:Slider({
     Title = "最大拉遠距離",
-    Min = 100,
-    Max = 1000,
-    Default = 400,
-    Rounding = 0,
+    Value = { Min = 100, Max = 1000, Default = 100, Step = 5 },
     Callback = function(val)
         getgenv().UniversalConfig.MaxZoomDistance = val
         if getgenv().UniversalConfig.ForceThirdPerson then
@@ -2882,10 +2876,7 @@ UniversalTab:Toggle({
 
 UniversalTab:Slider({
     Title = "亮度 (Brightness)",
-    Min = 1,
-    Max = 10,
-    Default = 3,
-    Rounding = 1,
+    Value = { Min = 1, Max = 10, Default = 3, Step = 1 },
     Callback = function(val)
         getgenv().WorldVisionConfig.FullbrightBrightness = val
         if getgenv().WorldVisionConfig.Enabled then
