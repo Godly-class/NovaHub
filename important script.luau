@@ -2287,9 +2287,6 @@ UniversalTab:Divider()
 -- UniversalTab - 通用功能 Tab
 -- 目前功能：強制第三人稱視角
 -- =============================================
-
-local UniversalTab = library:AddTab("Universal")
-
 -- ====================== 配置 ======================
 getgenv().UniversalConfig = {
     ForceThirdPerson = false,
