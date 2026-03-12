@@ -726,9 +726,6 @@ PrisonLifeTab:Button({
 -- 全部左上角、統一 UI 風格、LocalPlayer 顯示為 You、每次播死亡音效
 -- =============================================
 
-local library = loadstring(game:HttpGet("你的WindUI網址"))()
-local PrisonLifeTab = library:AddTab("PrisonLifeTab")
-
 -- ====================== 配置 ======================
 getgenv().PrisonKillfeedConfig = {
     Enabled = false,
