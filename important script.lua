@@ -3907,9 +3907,8 @@ getgenv().ESPConfig = {
     TargetTypes = {"玩家", "NPC"}  -- ★ 新增：選擇顯示類型（複選）
 }
 
-local Players = game:GetService("Players")
+
 local Teams = game:GetService("Teams")
-local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
