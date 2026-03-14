@@ -294,6 +294,8 @@ local OtherGamesTab = Window:Tab({Title = "🎮 其他遊戲", Icon = "gamepad"}
 
 local UniversalTab = Window:Tab({Title = "⚒️ 通用", Icon = "tool"})
 
+local PvPTab = Window:Tab({Title = "🤜PvP", Icon = "punch"})
+
 local ESPTab = Window:Tab({Title = "👀 ESP", Icon = "eye"})
 
 local PrisonLifeTab = Window:Tab({Title = "🔒 監獄人生", Icon = "lock"})
@@ -3257,6 +3259,629 @@ UniversalTab:Button({
     end
 })
 
+PvPTab:Section({ Title = "自瞄區域"), TextSize = 20})
+PvPTab:Divider()
+-- =============================================
+-- PvP 自瞄完整區域（UI + 邏輯）
+-- =============================================
+
+-- 自瞄配置（放在腳本開頭或 getgenv）
+getgenv().AimbotConfig = {
+    Enabled = false,
+    Targets = {"玩家"},                    -- 可複選 "玩家", "NPC"
+    AimMethod = "Fov",
+    FovSize = 150,
+    FovColor = "藍色",
+    FovTransparency = 0.6,
+    AimStrength = 0.25,                    -- 0.05\~1，越小越平滑
+    TeamCheck = true,
+    FriendCheck = false,
+    WallCheck = true,
+    InfoDisplayMode = "懸浮",              -- "懸浮" 或 "面板"
+    ShowTargetInfo = true
+}
+
+-- 顏色表
+local Colors = {
+    ["藍色"] = Color3.fromRGB(0, 170, 255),
+    ["紅色"] = Color3.fromRGB(255, 80, 80),
+    ["紫色"] = Color3.fromRGB(200, 100, 255),
+    ["綠色"] = Color3.fromRGB(0, 255, 100),
+    ["彩色（變色）"] = Color3.fromRGB(255, 255, 255)  -- 會動態變
+}
+
+-- 服務與變數
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local AimbotConnection = nil
+local FovCircle = nil
+local TargetInfoLabel = nil
+local InfoPanel = nil
+
+-- 建立 FOV 圈
+local function CreateFovCircle()
+    if FovCircle then return end
+    FovCircle = Drawing.new("Circle")
+    FovCircle.Thickness = 2
+    FovCircle.NumSides = 100
+    FovCircle.Radius = getgenv().AimbotConfig.FovSize
+    FovCircle.Filled = false
+    FovCircle.Transparency = getgenv().AimbotConfig.FovTransparency
+    FovCircle.Visible = false
+    FovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+-- 更新 FOV 圈
+local function UpdateFovCircle()
+    if not FovCircle then return end
+    FovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FovCircle.Radius = getgenv().AimbotConfig.FovSize
+    FovCircle.Transparency = getgenv().AimbotConfig.FovTransparency
+
+    local col = getgenv().AimbotConfig.FovColor
+    if col == "彩色（變色）" then
+        local t = tick() % 5 / 5
+        FovCircle.Color = Color3.fromHSV(t, 1, 1)
+    else
+        FovCircle.Color = Colors[col] or Color3.fromRGB(0, 170, 255)
+    end
+
+    FovCircle.Visible = getgenv().AimbotConfig.Enabled and getgenv().AimbotConfig.AimMethod == "Fov"
+end
+
+-- 建立懸浮資訊
+local function CreateFloatingInfo()
+    if TargetInfoLabel then return end
+    TargetInfoLabel = Drawing.new("Text")
+    TargetInfoLabel.Size = 16
+    TargetInfoLabel.Center = true
+    TargetInfoLabel.Outline = true
+    TargetInfoLabel.Color = Color3.fromRGB(255, 255, 255)
+    TargetInfoLabel.Visible = false
+end
+
+local function UpdateFloatingInfo(target)
+    if not getgenv().AimbotConfig.ShowTargetInfo or not TargetInfoLabel then return end
+    if not target or not target.Character or not target.Character:FindFirstChild("Head") then
+        TargetInfoLabel.Visible = false
+        return
+    end
+
+    local head = target.Character.Head
+    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
+    if not onScreen then
+        TargetInfoLabel.Visible = false
+        return
+    end
+
+    local hum = target.Character:FindFirstChild("Humanoid")
+    local dist = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude) or 0
+
+    TargetInfoLabel.Text = string.format(
+        "%s\n距離: %.0f\n血量: %.0f/%.0f",
+        target.Name or "NPC",
+        dist,
+        hum and hum.Health or 0,
+        hum and hum.MaxHealth or 100
+    )
+    TargetInfoLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+    TargetInfoLabel.Visible = true
+end
+
+-- 建立可移動面板
+local function CreateInfoPanel()
+    if InfoPanel then return end
+    InfoPanel = Instance.new("ScreenGui")
+    InfoPanel.Name = "AimbotInfoPanel"
+    InfoPanel.ResetOnSpawn = false
+    InfoPanel.Parent = game.CoreGui
+
+    local frame = Instance.new("Frame", InfoPanel)
+    frame.Name = "Frame"
+    frame.Size = UDim2.new(0, 180, 0, 90)
+    frame.Position = UDim2.new(0.5, -90, 0.5, -45)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.4
+    frame.BorderSizePixel = 0
+
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 25)
+    title.BackgroundTransparency = 1
+    title.Text = "瞄準目標"
+    title.TextColor3 = Color3.fromRGB(200, 200, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+
+    local content = Instance.new("TextLabel", frame)
+    content.Name = "Content"
+    content.Size = UDim2.new(1, -10, 1, -35)
+    content.Position = UDim2.new(0, 5, 0, 30)
+    content.BackgroundTransparency = 1
+    content.TextColor3 = Color3.fromRGB(255, 255, 255)
+    content.TextSize = 13
+    content.TextXAlignment = Enum.TextXAlignment.Left
+    content.TextYAlignment = Enum.TextYAlignment.Top
+    content.TextWrapped = true
+    content.Text = "未找到瞄準目標"
+
+    -- 拖曳
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+    end)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+local function UpdatePanelInfo(target)
+    if not getgenv().AimbotConfig.ShowTargetInfo or not InfoPanel then return end
+    local content = InfoPanel.Frame.Content
+
+    if target and target.Character then
+        local dist = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - target.Character.HumanoidRootPart.Position).Magnitude) or 0
+        local hum = target.Character:FindFirstChild("Humanoid")
+        content.Text = string.format(
+            "目標: %s\n距離: %.0f studs\n血量: %.0f / %.0f",
+            target:IsA("Player") and target.Name or "NPC",
+            dist,
+            hum and hum.Health or 0,
+            hum and hum.MaxHealth or 100
+        )
+    else
+        content.Text = "未找到瞄準目標"
+    end
+end
+
+-- 找最佳目標
+local function GetBestTarget()
+    local best, bestScore = nil, math.huge
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+
+    local candidates = {}
+    if table.find(getgenv().AimbotConfig.Targets, "玩家") then
+        for _, p in Players:GetPlayers() do
+            if p \~= LocalPlayer and p.Character then table.insert(candidates, p) end
+        end
+    end
+    if table.find(getgenv().AimbotConfig.Targets, "NPC") then
+        for _, m in workspace:GetDescendants() do
+            if m:IsA("Model") and m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(m) then
+                table.insert(candidates, m)
+            end
+        end
+    end
+
+    local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+    for _, t in candidates do
+        local char = t:IsA("Player") and t.Character or t
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local head = char:FindFirstChild("Head")
+        local hum = char:FindFirstChild("Humanoid")
+        if not root or not head or not hum or hum.Health <= 0 then continue end
+
+        -- 隊伍
+        if getgenv().AimbotConfig.TeamCheck and t:IsA("Player") and t.Team == LocalPlayer.Team then continue end
+        -- 好友
+        if getgenv().AimbotConfig.FriendCheck and t:IsA("Player") and LocalPlayer:IsFriendsWith(t.UserId) then continue end
+        -- 牆壁
+        if getgenv().AimbotConfig.WallCheck then
+            local params = RaycastParams.new()
+            params.FilterDescendantsInstances = {LocalPlayer.Character}
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            local result = workspace:Raycast(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 1000, params)
+            if result and result.Instance and not result.Instance:IsDescendantOf(char) then continue end
+        end
+
+        local headPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+        if not onScreen then continue end
+
+        local distToMouse = (Vector2.new(headPos.X, headPos.Y) - mousePos).Magnitude
+        local worldDist = (head.Position - Camera.CFrame.Position).Magnitude
+
+        local score = (getgenv().AimbotConfig.AimMethod == "Fov") and distToMouse or worldDist
+        if score < bestScore then
+            bestScore = score
+            best = t
+        end
+    end
+
+    return best
+end
+
+-- 主循環
+local function StartAimbotLoop()
+    if AimbotConnection then return end
+
+    CreateFovCircle()
+    CreateFloatingInfo()
+    if getgenv().AimbotConfig.InfoDisplayMode == "面板" then CreateInfoPanel() end
+
+    AimbotConnection = RunService.RenderStepped:Connect(function()
+        if not getgenv().AimbotConfig.Enabled then return end
+
+        UpdateFovCircle()
+
+        local target = GetBestTarget()
+
+        if getgenv().AimbotConfig.InfoDisplayMode == "懸浮" then
+            UpdateFloatingInfo(target)
+        else
+            UpdatePanelInfo(target)
+        end
+
+        if not target or not target.Character or not target.Character:FindFirstChild("Head") then return end
+
+        local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, getgenv().AimbotConfig.AimStrength)
+    end)
+end
+
+local function StopAimbotLoop()
+    if AimbotConnection then
+        AimbotConnection:Disconnect()
+        AimbotConnection = nil
+    end
+    if FovCircle then FovCircle:Remove() FovCircle = nil end
+    if TargetInfoLabel then TargetInfoLabel:Remove() TargetInfoLabel = nil end
+    if InfoPanel then InfoPanel:Destroy() InfoPanel = nil end
+end
+
+-- UI 元件（完整列表）
+PvPTab:Toggle({
+    Title = "自瞄總開關",
+    Default = false,
+    Callback = function(v)
+        getgenv().AimbotConfig.Enabled = v
+        if v then StartAimbotLoop() else StopAimbotLoop() end
+    end
+})
+
+PvPTab:Dropdown({
+    Title = "自瞄目標",
+    Values = {"玩家", "NPC"},
+    Multi = true,
+    Default = {"玩家"},
+    Callback = function(selected) getgenv().AimbotConfig.Targets = selected end
+})
+
+PvPTab:Dropdown({
+    Title = "自瞄方式",
+    Values = {"Fov", "距離"},
+    Default = 1,
+    Callback = function(v) getgenv().AimbotConfig.AimMethod = (v == 1 and "Fov") or "距離" end
+})
+
+PvPTab:Slider({
+    Title = "Fov 大小",
+    Value = { Min = 50, Max = 500, Default = 150 },
+    Callback = function(v) getgenv().AimbotConfig.FovSize = v end
+})
+
+PvPTab:Dropdown({
+    Title = "Fov 顏色",
+    Values = {"彩色", "藍色", "紅色", "紫色", "綠色"},
+    Default = 2,
+    Callback = function(v) getgenv().AimbotConfig.FovColor = v end
+})
+
+PvPTab:Slider({
+    Title = "Fov 透明度",
+    Value = { Min = 0.1, Max = 1, Default = 0.6 },
+    Callback = function(v) getgenv().AimbotConfig.FovTransparency = v end
+})
+
+PvPTab:Slider({
+    Title = "自瞄強度（平滑度）",
+    Desc = "值越小越平滑，越接近1越瞬間",
+    Value = { Min = 0.05, Max = 1, Default = 0.25 },
+    Callback = function(v) getgenv().AimbotConfig.AimStrength = v end
+})
+
+PvPTab:Toggle({
+    Title = "隊伍判斷",
+    Default = true,
+    Callback = function(v) getgenv().AimbotConfig.TeamCheck = v end
+})
+
+PvPTab:Toggle({
+    Title = "好友判斷",
+    Default = false,
+    Callback = function(v) getgenv().AimbotConfig.FriendCheck = v end
+})
+
+PvPTab:Toggle({
+    Title = "牆壁判斷",
+    Default = true,
+    Callback = function(v) getgenv().AimbotConfig.WallCheck = v end
+})
+
+
+PvPTab:Dropdown({
+    Title = "目標資訊顯示方式",
+    Values = {"懸浮", "面板"},
+    Default = 1,
+    Callback = function(v) getgenv().AimbotConfig.InfoDisplayMode = (v == 1 and "懸浮") or "面板" end
+})
+
+PvPTab:Toggle({
+    Title = "顯示瞄準目標資訊",
+    Default = true,
+    Callback = function(v) getgenv().AimbotConfig.ShowTargetInfo = v end
+})
+
+PvPTab:Divider()
+-- =============================================
+-- PvP 準星完整區域（UI + 繪製邏輯）
+-- =============================================
+
+-- 準星配置
+getgenv().CrosshairConfig = {
+    Enabled = false,
+    Style = "十字",                  -- "十字", "點", "圓"
+    Size = 20,
+    Gap = 6,                         -- 十字專用：點到線的距離
+    Rotate = false,
+    RotateSpeed = 1,
+    Dynamic = false,
+    DynamicScale = 1.5,
+    Color = "紅色",
+    FollowMouse = false              -- true = 跟隨鼠標, false = 螢幕中間固定
+}
+
+-- 顏色表（與自瞄共用）
+local Colors = {
+    ["紅色"] = Color3.fromRGB(255, 80, 80),
+    ["藍色"] = Color3.fromRGB(0, 170, 255),
+    ["綠色"] = Color3.fromRGB(0, 255, 100),
+    ["紫色"] = Color3.fromRGB(200, 100, 255),
+    ["彩色（變色）"] = Color3.fromRGB(255, 255, 255)  -- 會動態變
+}
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local CrosshairParts = {}  -- 儲存所有 Drawing 物件
+local CrosshairConnection = nil
+
+-- 建立準星（根據樣式）
+local function CreateCrosshair()
+    -- 先清空舊的
+    for _, part in pairs(CrosshairParts) do
+        if part then part:Remove() end
+    end
+    CrosshairParts = {}
+
+    local centerPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    if getgenv().CrosshairConfig.Style == "點" then
+        local dot = Drawing.new("Circle")
+        dot.Radius = getgenv().CrosshairConfig.Size / 2
+        dot.Thickness = 1
+        dot.Filled = true
+        dot.Color = Colors[getgenv().CrosshairConfig.Color] or Color3.fromRGB(255, 80, 80)
+        dot.Transparency = 1
+        dot.Visible = true
+        dot.Position = centerPos
+        table.insert(CrosshairParts, dot)
+
+    elseif getgenv().CrosshairConfig.Style == "圓" then
+        local outer = Drawing.new("Circle")
+        outer.Radius = getgenv().CrosshairConfig.Size
+        outer.Thickness = 2
+        outer.Filled = false
+        outer.Color = Colors[getgenv().CrosshairConfig.Color] or Color3.fromRGB(255, 80, 80)
+        outer.Transparency = 1
+        outer.Visible = true
+        outer.Position = centerPos
+        table.insert(CrosshairParts, outer)
+
+        local innerDot = Drawing.new("Circle")
+        innerDot.Radius = 2
+        innerDot.Thickness = 1
+        innerDot.Filled = true
+        innerDot.Color = outer.Color
+        innerDot.Transparency = 1
+        innerDot.Visible = true
+        innerDot.Position = centerPos
+        table.insert(CrosshairParts, innerDot)
+
+    elseif getgenv().CrosshairConfig.Style == "十字" then
+        -- 中間點
+        local centerDot = Drawing.new("Circle")
+        centerDot.Radius = 2
+        centerDot.Thickness = 1
+        centerDot.Filled = true
+        centerDot.Color = Colors[getgenv().CrosshairConfig.Color] or Color3.fromRGB(255, 80, 80)
+        centerDot.Transparency = 1
+        centerDot.Visible = true
+        centerDot.Position = centerPos
+        table.insert(CrosshairParts, centerDot)
+
+        -- 四條線
+        local directions = {Vector2.new(1,0), Vector2.new(-1,0), Vector2.new(0,1), Vector2.new(0,-1)}
+        for _, dir in ipairs(directions) do
+            local line = Drawing.new("Line")
+            line.Thickness = 2
+            line.Color = centerDot.Color
+            line.Transparency = 1
+            line.Visible = true
+            line.From = centerPos
+            line.To = centerPos + dir * (getgenv().CrosshairConfig.Size / 2 + getgenv().CrosshairConfig.Gap)
+            table.insert(CrosshairParts, line)
+        end
+    end
+end
+
+-- 更新準星位置、顏色、旋轉、動態
+local function UpdateCrosshair()
+    if not getgenv().CrosshairConfig.Enabled then return end
+
+    local center = getgenv().CrosshairConfig.FollowMouse and UserInputService:GetMouseLocation() or Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    local baseColor
+    if getgenv().CrosshairConfig.Color == "彩色（變色）" then
+        local t = tick() % 5 / 5
+        baseColor = Color3.fromHSV(t, 1, 1)
+    else
+        baseColor = Colors[getgenv().CrosshairConfig.Color] or Color3.fromRGB(255, 80, 80)
+    end
+
+    local scale = 1
+    if getgenv().CrosshairConfig.Dynamic then
+        scale = 1 + math.sin(tick() * 4) * (getgenv().CrosshairConfig.DynamicScale - 1) * 0.5
+    end
+
+    local rotation = 0
+    if getgenv().CrosshairConfig.Rotate then
+        rotation = tick() * getgenv().CrosshairConfig.RotateSpeed * 360
+    end
+
+    for i, part in ipairs(CrosshairParts) do
+        part.Color = baseColor
+        part.Visible = true
+
+        if part:IsA("Circle") then
+            part.Position = center
+            part.Radius = (part.Radius or 10) * scale  -- 動態調整大小
+        elseif part:IsA("Line") then
+            local dir = (part.To - part.From).Unit
+            local length = (getgenv().CrosshairConfig.Size / 2 + getgenv().CrosshairConfig.Gap) * scale
+
+            -- 應用旋轉
+            local rotatedDir = CFrame.new(Vector3.new(0,0,0), Vector3.new(dir.X, dir.Y, 0)) * CFrame.Angles(0,0,math.rad(rotation)) * Vector3.new(1,1,0)
+            part.From = center
+            part.To = center + Vector2.new(rotatedDir.X, rotatedDir.Y) * length
+        end
+    end
+end
+
+-- 啟動準星循環
+local function StartCrosshair()
+    if CrosshairConnection then return end
+
+    CreateCrosshair()
+
+    CrosshairConnection = RunService.RenderStepped:Connect(function()
+        if not getgenv().CrosshairConfig.Enabled then return end
+        UpdateCrosshair()
+    end)
+end
+
+local function StopCrosshair()
+    if CrosshairConnection then
+        CrosshairConnection:Disconnect()
+        CrosshairConnection = nil
+    end
+    for _, part in pairs(CrosshairParts) do
+        if part then part:Remove() end
+    end
+    CrosshairParts = {}
+end
+
+-- UI 元件（完整列表，按你順序）
+PvPTab:Toggle({
+    Title = "顯示準星",
+    Default = false,
+    Callback = function(val)
+        getgenv().CrosshairConfig.Enabled = val
+        if val then
+            StartCrosshair()
+        else
+            StopCrosshair()
+        end
+    end
+})
+
+PvPTab:Dropdown({
+    Title = "準星樣式",
+    Values = {"十字", "點", "圓"},
+    Default = 1,
+    Callback = function(val)
+        local styles = {"十字", "點", "圓"}
+        getgenv().CrosshairConfig.Style = styles[val]
+        if getgenv().CrosshairConfig.Enabled then
+            CreateCrosshair()  -- 樣式變更時重建
+        end
+    end
+})
+
+PvPTab:Slider({
+    Title = "準星總大小",
+    Value = { Min = 10, Max = 80, Default = 20 },
+    Callback = function(val)
+        getgenv().CrosshairConfig.Size = val
+        if getgenv().CrosshairConfig.Enabled then CreateCrosshair() end
+    end
+})
+
+PvPTab:Slider({
+    Title = "十字準星 點與線距離",
+    Value = { Min = 2, Max = 20, Default = 6 },
+    Callback = function(val)
+        getgenv().CrosshairConfig.Gap = val
+        if getgenv().CrosshairConfig.Enabled and getgenv().CrosshairConfig.Style == "十字" then
+            CreateCrosshair()
+        end
+    end
+})
+
+PvPTab:Toggle({
+    Title = "準星旋轉",
+    Default = false,
+    Callback = function(val) getgenv().CrosshairConfig.Rotate = val end
+})
+
+PvPTab:Slider({
+    Title = "旋轉速度",
+    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Callback = function(val) getgenv().CrosshairConfig.RotateSpeed = val end
+})
+
+PvPTab:Toggle({
+    Title = "動態縮放",
+    Default = false,
+    Callback = function(val) getgenv().CrosshairConfig.Dynamic = val end
+})
+
+PvPTab:Slider({
+    Title = "縮放力度",
+    Value = { Min = 1, Max = 3, Default = 1.5 },
+    Callback = function(val) getgenv().CrosshairConfig.DynamicScale = val end
+})
+
+PvPTab:Dropdown({
+    Title = "準星顏色",
+    Values = {"彩色", "紅", "藍", "綠", "紫"},
+    Default = 1,
+    Callback = function(val) getgenv().CrosshairConfig.Color = val end
+})
+
+PvPTab:Toggle({
+    Title = "跟隨鼠標",
+    Default = false,
+    Callback = function(val) getgenv().CrosshairConfig.FollowMouse = val end
+})
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
