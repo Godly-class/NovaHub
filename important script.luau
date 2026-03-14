@@ -3259,7 +3259,7 @@ UniversalTab:Button({
     end
 })
 
-PvPTab:Section({ Title = "自瞄區域"), TextSize = 20})
+PvPTab:Section({ Title = "自瞄區域", TextSize = 20 })
 PvPTab:Divider()
 -- =============================================
 -- PvP 自瞄完整區域（UI + 邏輯）
