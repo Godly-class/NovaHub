@@ -41,19 +41,19 @@ local L = {}
 
 -- 服務與玩家變數
 
-L.Players = game:GetService("Players")
+local Players = game:GetService("Players")
 
-L.RunService = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 
-L.StarterGui = game:GetService("StarterGui")
+local StarterGui = game:GetService("StarterGui")
 
-L.TweenService = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 
-L.UserInputService = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
-L.VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-L.LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 print("第一段無問題")
 
 -- 初始通知
