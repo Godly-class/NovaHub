@@ -37,21 +37,23 @@ print("[DEBUG] _G.WindUI 是否存在:", _G.WindUI ~= nil)
 
 print("[DEBUG] CreateWindow 是否 function:", type(_G.WindUI.CreateWindow) == "function")
 
+local L = {}
+
 -- 服務與玩家變數
 
-local Players = game:GetService("Players")
+L.Players = game:GetService("Players")
 
-local RunService = game:GetService("RunService")
+L.RunService = game:GetService("RunService")
 
-local StarterGui = game:GetService("StarterGui")
+L.StarterGui = game:GetService("StarterGui")
 
-local TweenService = game:GetService("TweenService")
+L.TweenService = game:GetService("TweenService")
 
-local UserInputService = game:GetService("UserInputService")
+L.UserInputService = game:GetService("UserInputService")
 
-local VirtualInputManager = game:GetService("VirtualInputManager")
+L.VirtualInputManager = game:GetService("VirtualInputManager")
 
-local LocalPlayer = Players.LocalPlayer
+L.LocalPlayer = Players.LocalPlayer
 print("第一段無問題")
 
 -- 初始通知
