@@ -289,11 +289,9 @@ local StrongestBattlegroundsTab = Window:Tab({Title = "✋ 最強戰場", Icon =
 
 local NightsForestTab = Window:Tab({Title = "🌲 森林99夜", Icon = "tree"})
 
-local OtherGamesTab = Window:Tab({Title = "🎮 其他遊戲", Icon = "gamepad"})
-
 local UniversalTab = Window:Tab({Title = "⚒️ 通用", Icon = "tool"})
 
-local PvPTab = Window:Tab({Title = "🤜PvP", Icon = "punch"})
+local PvPTab = Window:Tab({Title = "🤜 PvP", Icon = "punch"})
 
 local ESPTab = Window:Tab({Title = "👀 ESP", Icon = "eye"})
 
@@ -3251,6 +3249,7 @@ PvPTab:Divider()
 -- =============================================
 
 -- 自瞄配置（放在腳本開頭或 getgenv）
+--[[
 getgenv().AimbotConfig = {
     Enabled = false,
     Targets = {"玩家"},                    -- 可複選 "玩家", "NPC"
@@ -3861,6 +3860,7 @@ PvPTab:Toggle({
     Default = false,
     Callback = function(val) getgenv().CrosshairConfig.FollowMouse = val end
 })
+]]
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
