@@ -743,7 +743,7 @@ local Spacing = 34
 local BaseY = 60
 local BaseX = 20  -- 左上角
 
-local KillfeedFolder = ReplicatedStorage:FindFirstChild("Killfeed")
+local KillfeedFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Killfeed")
 
 -- ====================== 建立 GUI ======================
 local function CreateKillfeedGui()
