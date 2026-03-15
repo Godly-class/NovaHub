@@ -3249,7 +3249,6 @@ PvPTab:Divider()
 -- =============================================
 
 -- 自瞄配置（放在腳本開頭或 getgenv）
---[[
 getgenv().AimbotConfig = {
     Enabled = false,
     Targets = {"玩家"},                    -- 可複選 "玩家", "NPC"
@@ -3860,7 +3859,6 @@ PvPTab:Toggle({
     Default = false,
     Callback = function(val) getgenv().CrosshairConfig.FollowMouse = val end
 })
-]]
 -- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
