@@ -139,7 +139,6 @@ Window:Tag({
 
 --// Services
 local Stats = game:GetService("Stats")
-local RunService = game:GetService("RunService")
 
 --// ===== FPS 計算 =====
 local fps = 0
@@ -737,11 +736,8 @@ getgenv().PrisonKillfeedConfig = {
     SoundVolume = 0.65
 }
 
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+
 local SoundService = game:GetService("SoundService")
-local LocalPlayer = Players.LocalPlayer
 
 local KillfeedGui = nil
 local KillEntries = {}
@@ -1643,7 +1639,6 @@ UniversalTab:Button({
     Title = "📍 複製當前位置",
     Desc = "點擊後顯示座標並複製到剪貼簿",
     Callback = function()
-        local player = game.Players.LocalPlayer
         local character = player.Character
         if not character then
             showNotification("位置工具", "角色尚未載入", 5, "alert-triangle")
@@ -1679,26 +1674,27 @@ UniversalTab:Button({
 -- 飛行模式
 
 -- 全域變數（放在腳本頂端）
-local flyEnabled = false
-local bodyVelocity = nil
-local bodyGyro = nil
-local flyConnection = nil
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+getgenv().flyEnabled = false
+getgenv().bodyVelocity = nil
+getgenv().bodyGyro = nil
+getgenv().flyConnection = nil
+
+getgenv().UIS = game:GetService("UserInputService")
+getgenv().RunService = game:GetService("RunService")
+getgenv().Players = game:GetService("Players")
+getgenv().LocalPlayer = getgenv().Players.LocalPlayer
 
 -- 飛行速度調整（可改）
-local flySpeed = 50  -- 基本速度
-local ascendSpeed = 30  -- 上昇/下降速度
+getgenv().flySpeed = 50      -- 基本速度
+getgenv().ascendSpeed = 30   -- 上昇/下降速度
 
 -- 輸入狀態（PC 用）
-local movingForward = false
-local movingBackward = false
-local movingLeft = false
-local movingRight = false
-local ascending = false
-local descending = false
+getgenv().movingForward = false
+getgenv().movingBackward = false
+getgenv().movingLeft = false
+getgenv().movingRight = false
+getgenv().ascending = false
+getgenv().descending = false
 
 -- 開始飛行
 local function startFly()
@@ -2117,10 +2113,6 @@ end)
 
 UniversalTab:Divider()
 
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local LP = Players.LocalPlayer
 local Char = LP.Character or LP.CharacterAdded:Wait()
 
@@ -2179,8 +2171,7 @@ UniversalTab:Button({
     end
 })
 
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
+
 
 local SavedNeckC0 = {}
 local Headless = false
@@ -2256,8 +2247,6 @@ getgenv().TranslateConfig = {
 }
 
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local TranslateCache = {}              -- 文字 → 翻譯結果
 local TranslatedInstances = {}         -- 已處理過的 Instance 避免重複
@@ -2529,8 +2518,6 @@ getgenv().UniversalConfig = {
     LockCameraMode = true        -- 是否強制鎖定 Classic 模式
 }
 
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -2936,8 +2923,6 @@ getgenv().HitLogConfig = {
     AttackSoundId = "rbxassetid://82689852573606",  -- 預設第一個
 }
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -3291,11 +3276,7 @@ local Colors = {
 }
 
 -- 服務與變數
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-
 local AimbotConnection = nil
 local FovCircle = nil
 local TargetInfoLabel = nil
@@ -3658,8 +3639,6 @@ local Colors = {
     ["彩色（變色）"] = Color3.fromRGB(255, 255, 255)  -- 會動態變
 }
 
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local CrosshairParts = {}  -- 儲存所有 Drawing 物件
 local CrosshairConnection = nil
@@ -3910,7 +3889,6 @@ getgenv().ESPConfig = {
 
 local Teams = game:GetService("Teams")
 local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
 
 local ESPObjects = {}      -- 玩家 ESP
 local NPCObjects = {}      -- NPC ESP
@@ -4573,8 +4551,6 @@ RedvsBlueTab:Button({
     Callback = function()
 
         local rs = game:GetService("ReplicatedStorage")
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
 
         -- 找符合條件的目標
         local target = nil
@@ -4742,7 +4718,6 @@ RedvsBlueTab:Button({
             return
         end
 
-        local TweenService = game:GetService("TweenService")
 
         local points = {
             CFrame.new(186.11, 3.64, -2868.74), -- 藍
@@ -4775,8 +4750,6 @@ RedvsBlueTab:Button({
     end
 })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 
 local swordName = "ClassicSword"
 getgenv().KillAllEnabled = false
