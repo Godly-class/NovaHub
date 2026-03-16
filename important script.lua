@@ -3254,8 +3254,6 @@ PvPTab:Divider()
 -- 已修復：Fov顯示、自瞄效果、準星顯示、面板更新
 -- =============================================
 
-local l = l or {}
-
 -- ==================== 配置 ====================
 l.Aimbot = {
     Enabled = false,
@@ -3473,7 +3471,6 @@ local function StopMainLoop()
 end
 
 -- ==================== UI ====================
-local PvPTab = Window:Tab({Title = "PvP", Icon = "punch"})
 
 PvPTab:Toggle({
     Title = "自瞄 + 準星 總開關",
