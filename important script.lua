@@ -1,3 +1,45 @@
+-- AntiHook.lua
+-- 用於偵測 LocalScript 中 loadstring / HttpGet 是否被 hook
+-- 不會卡死玩家，只會停止核心功能或回傳假資料
+
+local HttpService = game:GetService("HttpService")
+
+-- 保存原始函數
+local originalLoadstring = loadstring
+local originalHttpGet = game.HttpGet
+
+-- 偵測 hook
+local function isHooked()
+    if loadstring ~= originalLoadstring then
+        return true
+    end
+    if game.HttpGet ~= originalHttpGet then
+        return true
+    end
+    return false
+end
+
+-- 偵測結果處理
+local function handleHook()
+    -- 可換成停止核心功能、回傳假資料、或提示訊息
+    warn("Hook detected! Core functionality disabled.")
+    
+    -- 例如把核心功能替換成空函數
+    _G.MyCoreFunction = function()
+        print("Function disabled due to hook")
+    end
+end
+
+-- 定時檢測 (每秒)
+task.spawn(function()
+    while true do
+        if isHooked() then
+            handleHook()
+            break -- 偵測到就停，不反覆提醒
+        end
+        task.wait(1)
+    end
+end)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/loading.lua"))()
 task.wait(5)
 
