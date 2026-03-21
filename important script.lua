@@ -596,6 +596,15 @@ BrookhavenTab:Button({
 
 DeadRailsTab:Section({ Title = "🚂 死亡鐵路 腳本", TextSize = 18 })
 
+DeadRailsTab:Button({ 
+        Title = "本熊加載器",
+        Desc = "國人自製",
+        Icon = "nil" ,
+        Callback = function() 
+            loadstring(game:HttpGet(('https://raw.%s/%s/%s'):format('githubusercontent.com','jbu7666gvv/BHBUO/refs/heads/main','loader')))()
+        end
+})
+
 DeadRailsTab:Divider()
 
 DeadRailsTab:Button({
