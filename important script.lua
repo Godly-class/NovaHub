@@ -1436,20 +1436,13 @@ UniversalTab:Toggle({
 
         staminaEnabled = state
 
-        
-
         if state then
 
             _G.WindUI:Notify({
-
                 Title = "無限體力 已啟用",
-
                 Content = "體力固定 100，防消耗 & 低頻保活中...",
-
                 Duration = 5,
-
                 Icon = "battery-full"
-
             })
 
             
@@ -2224,69 +2217,112 @@ UniversalTab:Button({
 
 
 
-local SavedNeckC0 = {}
-local Headless = false
+-- =============================================
+-- UniversalTab - 藏頭功能（Hide Head）
+-- =============================================
 
-UniversalTab:Toggle({
-    Title = "背後漂浮頭（碰撞消失）",
-    Default = false,
-    Callback = function(Value)
-        local Char = LP.Character or LP.CharacterAdded:Wait()
-        local Hum = Char:FindFirstChildOfClass("Humanoid")
-        if not Hum then return end
+local l = l or {}
 
-        local Rig = Hum.RigType
-        Headless = Value
+l.HideHead = {
+    Enabled = false
+}
 
-        if Rig == Enum.HumanoidRigType.R6 then
-            local Torso = Char:FindFirstChild("Torso")
-            local Neck = Torso and Torso:FindFirstChild("Neck")
-            local Head = Char:FindFirstChild("Head")
-            if not Neck or not Head then return end
+local originalHook = nil
+local renderConnection = nil
 
-            if Headless then
-                SavedNeckC0[Neck] = Neck.C0
+-- ==================== 藏頭核心函數 ====================
+local function lockNeckMotor()
+    local character = l.LocalPlayer.Character
+    if not character then return end
 
-                Head.CanCollide = false
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    if not torso then return end
 
-                -- 往身體後面 + 微往上，臉朝上
-                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
+    local neck = torso:FindFirstChild("Neck")
+    if not neck or not neck:IsA("Motor6D") then return end
 
-            else
-                if SavedNeckC0[Neck] then
-                    Neck.C0 = SavedNeckC0[Neck]
-                    Head.CanCollide = true
-                end
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+
+    renderConnection = l.RunService.RenderStepped:Connect(function()
+        if not l.HideHead.Enabled then
+            if renderConnection then 
+                renderConnection:Disconnect() 
+                renderConnection = nil 
             end
-
-        elseif Rig == Enum.HumanoidRigType.R15 then
-            local UpperTorso = Char:FindFirstChild("UpperTorso")
-            local Neck = UpperTorso and UpperTorso:FindFirstChild("Neck")
-            local Head = Char:FindFirstChild("Head")
-            if not UpperTorso or not Neck or not Head then return end
-
-            if Headless then
-                SavedNeckC0[Neck] = Neck.C0
-
-                Head.CanCollide = false
-
-                -- 往身體後面 + 微往上，臉朝上
-                Neck.C0 = CFrame.new(0, 1, 2) * CFrame.Angles(math.rad(-90), 0, 0)
-
-            else
-                if SavedNeckC0[Neck] then
-                    Neck.C0 = SavedNeckC0[Neck]
-                    Head.CanCollide = true
-                end
-            end
+            return
         end
+
+        -- 藏頭主要邏輯
+        neck.C0 = CFrame.new(0, 0, 0.75) * CFrame.Angles(math.rad(90), 0, 0)
+        neck.C1 = CFrame.new(0, 0.25, 0) * CFrame.Angles(0, 0, 0)
+    end)
+end
+
+local function restoreNeckMotor()
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+end
+
+-- ==================== MOVZREP Hook ====================
+local function updateHideHeadHook()
+    if l.HideHead.Enabled then
+        if not originalHook then
+            originalHook = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                
+                if method == "FireServer" and self.Name == "MOVZREP" then
+                    if l.HideHead.Enabled then
+                        local fixedArgs = {{
+                            {
+                                Vector3.new(-5721.2001953125, -5, 971.5162353515625),
+                                Vector3.new(-4181.38818359375, -6, 11.123311996459961),
+                                Vector3.new(0.006237113382667303, -6, -0.18136750161647797),
+                                true, true, true, false
+                            },
+                            false, false, 15.8
+                        }}
+                        return originalHook(self, table.unpack(fixedArgs))
+                    end
+                end
+                return originalHook(self, ...)
+            end)
+        end
+        lockNeckMotor()
+    else
+        if originalHook then
+            hookmetamethod(game, "__namecall", originalHook)
+            originalHook = nil
+        end
+        restoreNeckMotor()
+    end
+end
+
+-- ==================== UI 元件 ====================
+UniversalTab:Toggle({
+    Title = "藏頭 (Hide Head)",
+    Default = false,
+    Callback = function(val)
+        l.HideHead.Enabled = val
+        updateHideHeadHook()
+    end
+})
+
+-- 可選：增加一個重置按鈕（推薦加上）
+UniversalTab:Button({
+    Title = "重置藏頭（恢復正常）",
+    Callback = function()
+        l.HideHead.Enabled = false
+        updateHideHeadHook()
+        print("藏頭已重置")
     end
 })
 
 UniversalTab:Divider()
-
-
-
 
 getgenv().TranslateConfig = {
     Enabled = true,                    -- 總開關
