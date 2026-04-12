@@ -789,7 +789,7 @@ CriminalityTab:Button({
 CriminalityTab:Button({
         Title = "JX-劍俠",
         Desc = "最強農民",
-        Icon = "shull",
+        Icon = "sword",
         Callback = function()
             loadstring(game:HttpGet("https://rawscripts.net/raw/Criminality-JX-Cr1minality-53710"))()
             showNotification("JX-劍俠", "免費版已載入", 5, "skull")
