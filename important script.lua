@@ -89,6 +89,7 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
+local LP = Players.LocalPlayer
 print("第一段無問題")
 
 -- 初始通知
@@ -327,8 +328,6 @@ local StrongestBattlegroundsTab = Window:Tab({Title = "✋ 最強戰場", Icon =
 local NightsForestTab = Window:Tab({Title = "🌲 森林99夜", Icon = "tree"})
 
 local UniversalTab = Window:Tab({Title = "⚒️ 通用", Icon = "tool"})
-
-local PvPTab = Window:Tab({Title = "🤜 PvP", Icon = "punch"})
 
 local ESPTab = Window:Tab({Title = "👀 ESP", Icon = "eye"})
 
@@ -913,13 +912,6 @@ PrisonLifeTab:Button({
     end
 
 })
-
--- =============================================
--- PrisonLifeTab - 專用 Killfeed 顯示（使用遊戲內建 Killfeed 物件）
--- 全部左上角、統一 UI 風格、LocalPlayer 顯示為 You、每次播死亡音效
--- =============================================
-
--- ====================== 配置 ======================
 getgenv().PrisonKillfeedConfig = {
     Enabled = false,
     Duration = 3.8,
@@ -2358,9 +2350,6 @@ UniversalTab:Button({
 
 
 
--- =============================================
--- UniversalTab - 藏頭功能（Hide Head）
--- =============================================
 
 local l = l or {}
 
@@ -2474,7 +2463,7 @@ getgenv().TranslateConfig = {
     UIScanInterval = 3                 -- UI 掃描間隔（秒），避免太頻繁
 }
 
-local HttpService = game:GetService("HttpService")
+
 
 local TranslateCache = {}              -- 文字 → 翻譯結果
 local TranslatedInstances = {}         -- 已處理過的 Instance 避免重複
@@ -2746,7 +2735,7 @@ getgenv().UniversalConfig = {
     LockCameraMode = true        -- 是否強制鎖定 Classic 模式
 }
 
-local LocalPlayer = Players.LocalPlayer
+
 local Camera = workspace.CurrentCamera
 
 local OriginalMaxZoom = nil
@@ -3472,275 +3461,7 @@ UniversalTab:Button({
     end
 })
 
-PvPTab:Section({ Title = "自瞄區域", TextSize = 20 })
-PvPTab:Divider()
 
-
-
--- =============================================
--- PvP Tab 完整最終版（自瞄 + 準星 一次到位）
--- 已修復：Fov顯示、自瞄效果、準星顯示、面板更新
--- =============================================
-
--- ==================== 配置 ====================
-l.Aimbot = {
-    Enabled = false,
-    Targets = {"玩家"},
-    AimMethod = "Fov",
-    FovSize = 150,
-    FovColor = "藍色",
-    FovTransparency = 0.6,
-    AimStrength = 0.25,
-    TeamCheck = true,
-    FriendCheck = false,
-    WallCheck = true,
-    InfoDisplayMode = "懸浮",        -- "懸浮" 或 "面板"
-    ShowTargetInfo = true
-}
-
-l.Crosshair = {
-    Enabled = false,
-    Style = "十字",
-    Size = 20,
-    Gap = 6,
-    Rotate = false,
-    RotateSpeed = 1,
-    Dynamic = false,
-    DynamicScale = 1.5,
-    Color = "紅色",
-    FollowMouse = false
-}
-
--- ==================== 服務 ====================
-l.Players = game:GetService("Players")
-l.RunService = game:GetService("RunService")
-l.Camera = workspace.CurrentCamera
-l.LocalPlayer = l.Players.LocalPlayer
-
--- ==================== 物件 ====================
-local FovCircle = nil
-local TargetInfoLabel = nil
-local InfoPanel = nil
-local CrosshairParts = {}
-local MainConnection = nil
-
--- ==================== 顏色 ====================
-local Colors = {
-    ["藍色"] = Color3.fromRGB(0, 170, 255),
-    ["紅色"] = Color3.fromRGB(255, 80, 80),
-    ["紫色"] = Color3.fromRGB(200, 100, 255),
-    ["綠色"] = Color3.fromRGB(0, 255, 100)
-}
-
--- ==================== 建立函數 ====================
-local function CreateFovCircle()
-    if FovCircle then FovCircle:Remove() end
-    FovCircle = Drawing.new("Circle")
-    FovCircle.Thickness = 2
-    FovCircle.NumSides = 100
-    FovCircle.Filled = false
-end
-
-local function CreateCrosshair()
-    for _, v in pairs(CrosshairParts) do v:Remove() end
-    CrosshairParts = {}
-
-    local center = Vector2.new(l.Camera.ViewportSize.X/2, l.Camera.ViewportSize.Y/2)
-
-    if l.Crosshair.Style == "點" then
-        local dot = Drawing.new("Circle")
-        dot.Radius = l.Crosshair.Size/2
-        dot.Filled = true
-        dot.Visible = true
-        table.insert(CrosshairParts, dot)
-
-    elseif l.Crosshair.Style == "圓" then
-        local outer = Drawing.new("Circle")
-        outer.Radius = l.Crosshair.Size
-        outer.Filled = false
-        outer.Thickness = 2
-        outer.Visible = true
-        table.insert(CrosshairParts, outer)
-
-        local inner = Drawing.new("Circle")
-        inner.Radius = 2
-        inner.Filled = true
-        inner.Visible = true
-        table.insert(CrosshairParts, inner)
-
-    elseif l.Crosshair.Style == "十字" then
-        local centerDot = Drawing.new("Circle")
-        centerDot.Radius = 2
-        centerDot.Filled = true
-        centerDot.Visible = true
-        table.insert(CrosshairParts, centerDot)
-
-        local dirs = {Vector2.new(1,0), Vector2.new(-1,0), Vector2.new(0,1), Vector2.new(0,-1)}
-        for _, dir in ipairs(dirs) do
-            local line = Drawing.new("Line")
-            line.Thickness = 2
-            line.Visible = true
-            table.insert(CrosshairParts, line)
-        end
-    end
-end
-
--- ==================== 找目標 ====================
-local function GetBestTarget()
-    local best, bestScore = nil, math.huge
-    local myChar = l.LocalPlayer.Character
-    if not myChar then return nil end
-    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-
-    local candidates = {}
-    if table.find(l.Aimbot.Targets, "玩家") then
-        for _, p in ipairs(l.Players:GetPlayers()) do
-            if p \~= l.LocalPlayer and p.Character then table.insert(candidates, p) end
-        end
-    end
-    if table.find(l.Aimbot.Targets, "NPC") then
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not l.Players:GetPlayerFromCharacter(obj) then
-                table.insert(candidates, obj)
-            end
-        end
-    end
-
-    local mousePos = Vector2.new(l.Camera.ViewportSize.X/2, l.Camera.ViewportSize.Y/2)
-
-    for _, t in ipairs(candidates) do
-        local char = t:IsA("Player") and t.Character or t
-        if not char then continue end
-        local head = char:FindFirstChild("Head")
-        local hum = char:FindFirstChild("Humanoid")
-        if not head or not hum or hum.Health <= 0 then continue end
-
-        if l.Aimbot.TeamCheck and t:IsA("Player") and t.Team == l.LocalPlayer.Team then continue end
-        if l.Aimbot.FriendCheck and t:IsA("Player") and l.LocalPlayer:IsFriendsWith(t.UserId) then continue end
-
-        local headPos, onScreen = l.Camera:WorldToViewportPoint(head.Position)
-        if not onScreen then continue end
-
-        local distToMouse = (Vector2.new(headPos.X, headPos.Y) - mousePos).Magnitude
-        local worldDist = (head.Position - l.Camera.CFrame.Position).Magnitude
-
-        local score = (l.Aimbot.AimMethod == "Fov") and distToMouse or worldDist
-        if score < bestScore then
-            bestScore = score
-            best = t
-        end
-    end
-    return best
-end
-
--- ==================== 主循環（自瞄+準星+資訊 一次更新） ====================
-local function StartMainLoop()
-    if MainConnection then return end
-
-    CreateFovCircle()
-    CreateCrosshair()
-
-    MainConnection = l.RunService.RenderStepped:Connect(function()
-        if not l.Aimbot.Enabled then return end
-
-        local target = GetBestTarget()
-
-        -- 更新 FOV
-        if FovCircle then
-            FovCircle.Position = Vector2.new(l.Camera.ViewportSize.X/2, l.Camera.ViewportSize.Y/2)
-            FovCircle.Radius = l.Aimbot.FovSize
-            FovCircle.Transparency = l.Aimbot.FovTransparency
-            FovCircle.Visible = (l.Aimbot.AimMethod == "Fov")
-            FovCircle.Color = (l.Aimbot.FovColor == "彩色（變色）") and Color3.fromHSV(tick()%5/5,1,1) or (Colors[l.Aimbot.FovColor] or Color3.fromRGB(0,170,255))
-        end
-
-        -- 更新準星
-        if #CrosshairParts > 0 then
-            local center = l.Crosshair.FollowMouse and l.UIS:GetMouseLocation() or Vector2.new(l.Camera.ViewportSize.X/2, l.Camera.ViewportSize.Y/2)
-            local scale = l.Crosshair.Dynamic and (1 + math.sin(tick()*4) * (l.Crosshair.DynamicScale-1)*0.5) or 1
-            local rot = l.Crosshair.Rotate and (tick() * l.Crosshair.RotateSpeed * 360) or 0
-
-            for _, part in ipairs(CrosshairParts) do
-                part.Color = (l.Crosshair.Color == "彩色（變色）") and Color3.fromHSV(tick()%5/5,1,1) or (Colors[l.Crosshair.Color] or Color3.fromRGB(255,80,80))
-                part.Visible = true
-                if part:IsA("Circle") then
-                    part.Position = center
-                    part.Radius = (part.Radius or 10) * scale
-                end
-            end
-        end
-
-        -- 更新目標資訊
-        if l.Aimbot.ShowTargetInfo then
-            if l.Aimbot.InfoDisplayMode == "懸浮" then
-                -- UpdateFloatingInfo(target)  -- 你可自行補上原本的懸浮邏輯
-            else
-                -- UpdatePanelInfo(target)
-            end
-        end
-
-        -- 自瞄平滑移動
-        if target and target.Character and target.Character:FindFirstChild("Head") then
-            local targetCFrame = CFrame.new(l.Camera.CFrame.Position, target.Character.Head.Position)
-            l.Camera.CFrame = l.Camera.CFrame:Lerp(targetCFrame, l.Aimbot.AimStrength)
-        end
-    end)
-end
-
-local function StopMainLoop()
-    if MainConnection then
-        MainConnection:Disconnect()
-        MainConnection = nil
-    end
-    if FovCircle then FovCircle:Remove() FovCircle = nil end
-    for _, v in pairs(CrosshairParts) do v:Remove() end
-    CrosshairParts = {}
-end
-
--- ==================== UI ====================
-
-PvPTab:Toggle({
-    Title = "自瞄 + 準星 總開關",
-    Default = false,
-    Callback = function(val)
-        l.Aimbot.Enabled = val
-        l.Crosshair.Enabled = val
-        if val then
-            StartMainLoop()
-        else
-            StopMainLoop()
-        end
-    end
-})
-
--- 以下是你原本的所有 UI 元件（直接保留）
-PvPTab:Dropdown({Title = "自瞄目標", Values = {"玩家", "NPC"}, Multi = true, Default = {"玩家"}, Callback = function(v) l.Aimbot.Targets = v end})
-PvPTab:Dropdown({Title = "自瞄方式", Values = {"Fov", "距離（優先近的）"}, Default = 1, Callback = function(v) l.Aimbot.AimMethod = (v==1 and "Fov") or "距離" end})
-PvPTab:Slider({Title = "Fov 大小", Value = {Min=50, Max=500, Default=150}, Callback = function(v) l.Aimbot.FovSize = v end})
-PvPTab:Dropdown({Title = "Fov 顏色", Values = {"彩色（變色）","藍色","紅色","紫色","綠色"}, Default=2, Callback = function(v) l.Aimbot.FovColor = v end})
-PvPTab:Slider({Title = "Fov 透明度", Value = {Min=0.1, Max=1, Default=0.6}, Callback = function(v) l.Aimbot.FovTransparency = v end})
-PvPTab:Slider({Title = "自瞄強度", Value = {Min=0.05, Max=1, Default=0.25}, Callback = function(v) l.Aimbot.AimStrength = v end})
-PvPTab:Toggle({Title = "隊伍判斷", Default=true, Callback = function(v) l.Aimbot.TeamCheck = v end})
-PvPTab:Toggle({Title = "好友判斷", Default=false, Callback = function(v) l.Aimbot.FriendCheck = v end})
-PvPTab:Toggle({Title = "牆壁判斷", Default=true, Callback = function(v) l.Aimbot.WallCheck = v end})
-PvPTab:Dropdown({Title = "目標資訊顯示方式", Values = {"懸浮","面板"}, Default=1, Callback = function(v) l.Aimbot.InfoDisplayMode = (v==1 and "懸浮") or "面板" end})
-PvPTab:Toggle({Title = "顯示目標資訊", Default=true, Callback = function(v) l.Aimbot.ShowTargetInfo = v end})
-
--- 準星 UI
-PvPTab:Dropdown({Title = "準星樣式", Values = {"十字","點","圓"}, Default=1, Callback = function(v) l.Crosshair.Style = ({"十字","點","圓"})[v] end})
-PvPTab:Slider({Title = "準星大小", Value = {Min=10, Max=80, Default=20}, Callback = function(v) l.Crosshair.Size = v end})
-PvPTab:Slider({Title = "十字 Gap", Value = {Min=2, Max=20, Default=6}, Callback = function(v) l.Crosshair.Gap = v end})
-PvPTab:Toggle({Title = "準星旋轉", Default=false, Callback = function(v) l.Crosshair.Rotate = v end})
-PvPTab:Slider({Title = "旋轉速度", Value = {Min=0.1, Max=5, Default=1}, Callback = function(v) l.Crosshair.RotateSpeed = v end})
-PvPTab:Toggle({Title = "動態縮放", Default=false, Callback = function(v) l.Crosshair.Dynamic = v end})
-PvPTab:Slider({Title = "縮放力度", Value = {Min=1, Max=3, Default=1.5}, Callback = function(v) l.Crosshair.DynamicScale = v end})
-PvPTab:Dropdown({Title = "準星顏色", Values = {"彩色（變色）","紅","藍","綠","紫"}, Default=1, Callback = function(v) l.Crosshair.Color = v end})
-PvPTab:Toggle({Title = "跟隨鼠標", Default=false, Callback = function(v) l.Crosshair.FollowMouse = v end})
-
-print("[PvP] 完整修復版已載入 - 自瞄與準星已整合")
-
--- ESPTab
 
 ESPTab:Section({ Title = "👀 ESP 設定", TextSize = 20 })
 
