@@ -760,7 +760,7 @@ CriminalityTab:Button({
      end
 })
 
-Criminality:Button({
+CriminalityTab:Button({
         Title = "Criminalogy",
         Desc = "犯罪學",
         Icon = "book",
@@ -770,7 +770,7 @@ Criminality:Button({
         end
 })
 
-Criminality:Button({
+CriminalityTab:Button({
         Title = "JX-劍俠",
         Desc = "最強農民",
         Icon = "shull",
@@ -850,7 +850,7 @@ local function updateHideHeadHook()
         restoreNeckMotorsForHideHead()
     end
 end
-Criminality:Toggle({
+CriminalityTab:Toggle({
     Title = "藏頭",
     Desc = "AntiAim",
     Icon = "nil",
