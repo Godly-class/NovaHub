@@ -797,6 +797,15 @@ CriminalityTab:Button({
  })
         
 
+CriminalityTab:Button({
+        Title = "hide hand",
+        Desc = "AntiAim",
+        Icon = "clock",
+        Callback = function()
+         local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
 local hideHeadEnabled = false
 local originalHook = nil
 local renderConnection = nil
@@ -866,19 +875,38 @@ local function updateHideHeadHook()
         restoreNeckMotorsForHideHead()
     end
 end
-CriminalityTab:Toggle({
-    Title = "藏頭",
-    Desc = "AntiAim",
-    Icon = "nil",
-    Callback = function(Value)
-        hideHeadEnabled = Value
-        updateHideHeadHook()
-        if hideHeadEnabled then
-            showNotification("藏頭開啟", "AntiAim 已啟動", 5, "nil")
-        else
-            showNotification("藏頭關閉", "已恢復原狀", 5, "nil")
-        end
+
+-- 建立簡單開關（你可以加到 UI 裡）
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local hideButton = Instance.new("TextButton")
+hideButton.Size = UDim2.new(0, 100, 0, 40)
+hideButton.Position = UDim2.new(0, 10, 0, 100)
+hideButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+hideButton.Text = "藏頭 OFF"
+hideButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+hideButton.TextScaled = true
+hideButton.Font = Enum.Font.GothamBold
+hideButton.Parent = screenGui
+
+hideButton.MouseButton1Click:Connect(function()
+    hideHeadEnabled = not hideHeadEnabled
+    updateHideHeadHook()
+    
+    if hideHeadEnabled then
+        hideButton.Text = "藏頭 ON"
+        hideButton.TextColor3 = Color3.fromRGB(100, 255, 100)
+        print("✅ 藏頭已開啟（頭部隱藏）")
+    else
+        hideButton.Text = "藏頭 OFF"
+        hideButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        print("❌ 藏頭已關閉")
     end
+end)
+            showNotification("藏頭開啟", "螢幕左側出現按鈕", 5, "clock")
+        end
 })
 
 print("Not Crim")
