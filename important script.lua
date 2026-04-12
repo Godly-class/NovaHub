@@ -751,9 +751,9 @@ for _,v in pairs(getgc(true)) do
             break 
         end 
     end 
+            end
 showNotification("繞過反作弊(1)", "Adonis AntiCheat繞過成功", 5, "shield-off")
 showNotification("繞過反作弊(2)", "DTXC1 AntiCheat繞過成功", 5, "shield-off")
-            end
         end
 })
 CriminalityTab:Button({
