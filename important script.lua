@@ -761,6 +761,27 @@ CriminalityTab:Button({
      end
 })
 
+Criminality:Button({
+        Title = "Criminalogy",
+        Desc = "犯罪學",
+        Icon = "book",
+        Callback = function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/Coolmandfgfgdvcgfg/criminologyv2-lstr/refs/heads/main/cbetabranch.lua'))()
+            showNotification("Criminalogy", "犯罪學已載入", 5, "book")
+        end
+})
+
+Criminality:Button({
+        Title = "JX-劍俠",
+        Desc = "最強農民",
+        Icon = "shull",
+        Callback = function()
+            loadstring(game:HttpGet("https://rawscripts.net/raw/Criminality-JX-Cr1minality-53710"))()
+            showNotification("JX-劍俠", "免費版已載入", 5, "skull")
+        end
+ })
+        
+
 local hideHeadEnabled = false
 local originalHook = nil
 local renderConnection = nil
