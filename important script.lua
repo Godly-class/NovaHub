@@ -701,48 +701,46 @@ CriminalityTab:Section({ Title = "💀 Criminality 腳本", TextSize = 18 })
 CriminalityTab:Divider()
 
 CriminalityTab:Button({
-        Title = "繞過反作弊",
-        Desc = "繞過AC",
-        Icon = "shield-off",
-        Callback = function()
-            repeat task.wait() until game:IsLoaded()
+    Title = "繞過反作弊",
+    Desc = "繞過AC",
+    Icon = "shield-off",
+    Callback = function()
+        repeat task.wait() until game:IsLoaded()
 
-local function isAdonisAC(tab) 
-    return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
-end
+        local function isAdonisAC(tab) 
+            return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
+        end
 
-for _,v in next,getgc(true) do 
-    if typeof(v)=="table" and isAdonisAC(v) then 
-        for i,f in next,v do 
-            if rawequal(i,"Detected") then 
-                local old 
-                old=hookfunction(f,function(action,info,crash)
-                    if rawequal(action,"_") and rawequal(info,"_") and rawequal(crash,false) then 
-                        return old(action,info,crash) 
+        -- 合併掃描，只跑一次 getgc
+        for _, v in next, getgc(true) do 
+            if typeof(v) == "table" then
+                -- 處理 Adonis
+                if isAdonisAC(v) then
+                    for i, f in next, v do
+                        if rawequal(i, "Detected") then
+                            local old
+                            old = hookfunction(f, function(action, info, crash)
+                                -- 這裡建議確認 action 是 "" 還是 "_"
+                                if (action == "" or action == "_") and info == "_" and crash == false then 
+                                    return old(action, info, crash) 
+                                end
+                                return task.wait(9e9) 
+                            end)
+                        end
                     end
-                    return task.wait(9e9) 
-                end) 
-                warn("Adonis AC bypassed") 
-                break 
-            end 
-        end 
-    end 
-end
--- DTXC1 檢測繞過
-for _,v in pairs(getgc(true)) do 
-    if type(v)=="table" then 
-        local func=rawget(v,"DTXC1") 
-        if type(func)=="function" then 
-            hookfunction(func,function() return end) 
-            warn("DTXC1 bypassed")
-            break 
-        end 
-    end 
+                end
+showNotification("繞過反作弊(1)", "Adonis AntiCheat繞過成功", 5, "shield-off")
+                -- 處理 DTXC1
+                local dtxFunc = rawget(v, "DTXC1")
+                if typeof(dtxFunc) == "function" then
+                    hookfunction(dtxFunc, function() return end)
+                end
             end
-    showNotification("繞過反作弊(1)", "Adonis AntiCheat已繞過", 5, "shield-off")
-    showNotification("繞過反作弊(2)", "DTXC1 AntiCheat已繞過", 5, "shied-off")
+        end
+        
+        showNotification("繞過反作弊(2)", "DTXC1 AntiCheat繞過成功", 5, "shield-off")
+    end
 })
-
 CriminalityTab:Button({
     Title = "kanny漢化",
     Desc = "沒有繞過",
@@ -759,16 +757,11 @@ CriminalityTab:Button({
         Icon = "skull",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/Skeet.lua"))()
-            shownotification("Skeet.cc", "已載入洩漏版，洩漏by eert602", 5, "skull")
+            showNotification("Skeet.cc", "已載入洩漏版，洩漏by eert602", 5, "skull")
      end
 })
 
-Criminality:Botton({
-            Title = "藏頭"
-            Disc = "AntiAim"
-            Icon = "nil"
-            Callback = function()
-                local hideHeadEnabled = false
+local hideHeadEnabled = false
 local originalHook = nil
 local renderConnection = nil
 
@@ -836,9 +829,22 @@ local function updateHideHeadHook()
         end
         restoreNeckMotorsForHideHead()
     end
-                end
-    showNotification("藏頭AntiAim已載入", "請確保你已經bypass了反作弊", 5, "nil")
-            end
+end
+Criminality:Toggle({
+    Title = "藏頭",
+    Desc = "AntiAim",
+    Icon = "nil",
+    Callback = function(Value)
+        hideHeadEnabled = Value
+        updateHideHeadHook()
+        if hideHeadEnabled then
+            showNotification("藏頭開啟", "AntiAim 已啟動", 5, "nil")
+        else
+            showNotification("藏頭關閉", "已恢復原狀", 5, "nil")
+        end
+    end
+})
+    
 -- NightsForestTab
 
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
