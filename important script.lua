@@ -720,38 +720,41 @@ CriminalityTab:Button({
     Callback = function()
         repeat task.wait() until game:IsLoaded()
 
-        local function isAdonisAC(tab) 
-            return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
-        end
+local function isAdonisAC(tab) 
+    return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
+end
 
-        -- 合併掃描，只跑一次 getgc
-        for _, v in next, getgc(true) do 
-            if typeof(v) == "table" then
-                -- 處理 Adonis
-                if isAdonisAC(v) then
-                    for i, f in next, v do
-                        if rawequal(i, "Detected") then
-                            local old
-                            old = hookfunction(f, function(action, info, crash)
-                                -- 這裡建議確認 action 是 "" 還是 "_"
-                                if (action == "" or action == "_") and info == "_" and crash == false then 
-                                    return old(action, info, crash) 
-                                end
-                                return task.wait(9e9) 
-                            end)
-                        end
+for _,v in next,getgc(true) do 
+    if typeof(v)=="table" and isAdonisAC(v) then 
+        for i,f in next,v do 
+            if rawequal(i,"Detected") then 
+                local old 
+                old=hookfunction(f,function(action,info,crash)
+                    if rawequal(action,"_") and rawequal(info,"_") and rawequal(crash,false) then 
+                        return old(action,info,crash) 
                     end
-                end
-showNotification("繞過反作弊(1)", "Adonis AntiCheat繞過成功", 5, "shield-off")
-                -- 處理 DTXC1
-                local dtxFunc = rawget(v, "DTXC1")
-                if typeof(dtxFunc) == "function" then
-                    hookfunction(dtxFunc, function() return end)
-                end
-            end
+                    return task.wait(9e9) 
+                end) 
+                warn("Adonis AC bypassed") 
+                break 
+            end 
+        end 
+    end 
+end
+-- DTXC1 檢測繞過
+for _,v in pairs(getgc(true)) do 
+    if type(v)=="table" then 
+        local func=rawget(v,"DTXC1") 
+        if type(func)=="function" then 
+            hookfunction(func,function() return end) 
+            warn("DTXC1 bypassed")
+            break 
+        end 
+    end 
+end
         end
-        
-        showNotification("繞過反作弊(2)", "DTXC1 AntiCheat繞過成功", 5, "shield-off")
+showNotification("繞過反作弊(1)", "Adonis AntiCheat繞過成功", 5, "shield-off")
+showNotification("繞過反作弊(2)", "DTXC1 AntiCheat繞過成功", 5, "shield-off")
     end
 })
 CriminalityTab:Button({
