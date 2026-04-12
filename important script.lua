@@ -1,14 +1,7 @@
--- AntiHook.lua
--- 用於偵測 LocalScript 中 loadstring / HttpGet 是否被 hook
--- 不會卡死玩家，只會停止核心功能或回傳假資料
 
 local HttpService = game:GetService("HttpService")
-
--- 保存原始函數
 local originalLoadstring = loadstring
 local originalHttpGet = game.HttpGet
-
--- 偵測 hook
 local function isHooked()
     if loadstring ~= originalLoadstring then
         return true
@@ -708,23 +701,144 @@ CriminalityTab:Section({ Title = "💀 Criminality 腳本", TextSize = 18 })
 CriminalityTab:Divider()
 
 CriminalityTab:Button({
+        Title = "繞過反作弊",
+        Desc = "繞過AC",
+        Icon = "shield-off",
+        Callback = function()
+            repeat task.wait() until game:IsLoaded()
 
-    Title = "kenny漢化",
+local function isAdonisAC(tab) 
+    return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
+end
 
-    Desc = "容易被踢",
-
-    Icon = "skull",
-
-    Callback = function()
-
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Kenny1.5.txt"))()
-
-        showNotification("💀 kenny漢化", "已載入 kenny漢化腳本（注意容易被踢）", 5, "skull")
-
-    end
-
+for _,v in next,getgc(true) do 
+    if typeof(v)=="table" and isAdonisAC(v) then 
+        for i,f in next,v do 
+            if rawequal(i,"Detected") then 
+                local old 
+                old=hookfunction(f,function(action,info,crash)
+                    if rawequal(action,"_") and rawequal(info,"_") and rawequal(crash,false) then 
+                        return old(action,info,crash) 
+                    end
+                    return task.wait(9e9) 
+                end) 
+                warn("Adonis AC bypassed") 
+                break 
+            end 
+        end 
+    end 
+end
+-- DTXC1 檢測繞過
+for _,v in pairs(getgc(true)) do 
+    if type(v)=="table" then 
+        local func=rawget(v,"DTXC1") 
+        if type(func)=="function" then 
+            hookfunction(func,function() return end) 
+            warn("DTXC1 bypassed")
+            break 
+        end 
+    end 
+            end
+    showNotification("繞過反作弊(1)", "Adonis AntiCheat已繞過", 5, "shield-off")
+    showNotification("繞過反作弊(2)", "DTXC1 AntiCheat已繞過", 5, "shied-off")
 })
 
+CriminalityTab:Button({
+    Title = "kanny漢化",
+    Desc = "沒有繞過",
+    Icon = "skull",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Kenny1.5.txt"))()
+        showNotification("💀 kenny漢化", "已載入 kenny漢化腳本", 5, "skull")
+    end
+})
+
+CriminalityTab:Button({ 
+        Title = "Skeet.cc",
+        Desc = "洩漏版本",
+        Icon = "skull",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/Skeet.lua"))()
+            shownotification("Skeet.cc", "已載入洩漏版，洩漏by eert602", 5, "skull")
+     end
+})
+
+Criminality:Botton({
+            Title = "藏頭"
+            Disc = "AntiAim"
+            Icon = "nil"
+            Callback = function()
+                local hideHeadEnabled = false
+local originalHook = nil
+local renderConnection = nil
+
+local function lockNeckMotorForHideHead()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local torso = character:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local neck = torso:FindFirstChild("Neck")
+    if not neck or not neck:IsA("Motor6D") then return end
+    
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+    
+    renderConnection = RunService.RenderStepped:Connect(function()
+        if not hideHeadEnabled then
+            if renderConnection then renderConnection:Disconnect() renderConnection = nil end
+            return
+        end
+        
+        -- 藏頭核心：把脖子旋轉讓頭看起來不見
+        neck.C0 = CFrame.new(0, 0, 0.75) * CFrame.Angles(math.rad(90), 0, 0)
+        neck.C1 = CFrame.new(0, 0.25, 0) * CFrame.Angles(0, 0, 0)
+    end)
+end
+
+local function restoreNeckMotorsForHideHead()
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+end
+
+local function updateHideHeadHook()
+    if hideHeadEnabled then
+        if not originalHook then
+            originalHook = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                if method == "FireServer" and self.Name == "MOVZREP" then
+                    if hideHeadEnabled then
+                        local fixedArgs = {{
+                            {
+                                Vector3.new(-5721.2001953125, -5, 971.5162353515625),
+                                Vector3.new(-4181.38818359375, -6, 11.123311996459961),
+                                Vector3.new(0.006237113382667303, -6, -0.18136750161647797),
+                                true, true, true, false
+                            },
+                            false, false, 15.8
+                        }}
+                        return originalHook(self, table.unpack(fixedArgs))
+                    end
+                end
+                return originalHook(self, ...)
+            end)
+        end
+        lockNeckMotorForHideHead()
+    else
+        if originalHook then
+            hookmetamethod(game, "__namecall", originalHook)
+            originalHook = nil
+        end
+        restoreNeckMotorsForHideHead()
+    end
+                end
+    showNotification("藏頭AntiAim已載入", "請確保你已經bypass了反作弊", 5, "nil")
+            end
 -- NightsForestTab
 
 NightsForestTab:Section({ Title = "🌲 森林99夜 腳本", TextSize = 18 })
