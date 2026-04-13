@@ -785,9 +785,9 @@ CriminalityTab:Button({
         
 
 CriminalityTab:Button({
-        Title = "XK Crim"
-        Desc = "功能少，但有黑商透視"
-        Icon = "eyes"
+        Title = "XK Crim",
+        Desc = "功能少，但有黑商透視",
+        Icon = "eyes",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/DevSloPo/Main/refs/heads/main/Game/Criminality"))()
             showNotification("XK載入成功", "enjoy", 5, "eyes")
