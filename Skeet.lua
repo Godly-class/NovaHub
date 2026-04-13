@@ -1,47 +1,4 @@
-repeat task.wait() until game:IsLoaded()
 
-local function isAdonisAC(tab) 
-    return rawget(tab,"Detected") and typeof(rawget(tab,"Detected"))=="function" and rawget(tab,"RLocked") 
-end
-for _,v in next,getgc(true) do 
-    if typeof(v)=="table" and isAdonisAC(v) then 
-        for i,f in next,v do 
-            if rawequal(i,"Detected") then 
-                local old 
-                old=hookfunction(f,function(action,info,crash)
-                    if rawequal(action,"_") and rawequal(info,"_") and rawequal(crash,false) then 
-                        return old(action,info,crash) 
-                    end 
-                    return task.wait(9e9) 
-                end) 
-                warn("bypassed") 
-                break 
-            end 
-        end 
-    end 
-end
-for _,v in pairs(getgc(true)) do 
-    if type(v)=="table" then 
-        local func=rawget(v,"DTXC1") 
-        if type(func)=="function" then 
-            hookfunction(func,function() return end) 
-            break 
-        end 
-    end 
-end
-local TargetList = {}
-local Whitelist = {}
-local function tableContains(t, value)
-    for _, v in ipairs(t) do if v == value then return true end end
-    return false
-end
-
-local function tableRemove(t, value)
-    for i, v in ipairs(t) do
-        if v == value then table.remove(t, i) return true end
-    end
-    return false
-end
 local LegitAimbotModule = {
     Enabled = false,
     Settings = {
@@ -1202,18 +1159,18 @@ local ConfigTable = {
     Ragebot = {
         Enabled = false,
         RapidFire = false,
-        FireRate = 30,
+        FireRate = 1000,
         Prediction = true,
         PredictionAmount = 0.12,
         TeamCheck = false,
-        VisibilityCheck = true,
+        VisibilityCheck = false,
         Wallbang = true,
         Tracers = true,
         TracerColor = Color3.fromRGB(255, 0, 0),
         TracerWidth = 1,
         TracerLifetime = 3,
-        ShootRange = 15,
-        HitRange = 15,
+        ShootRange = 13,
+        HitRange = 2,
         HitNotify = true,
         AutoReload = true,
         HitSound = true,
