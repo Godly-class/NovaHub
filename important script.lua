@@ -1,4 +1,3 @@
-
 local HttpService = game:GetService("HttpService")
 local originalLoadstring = loadstring
 local originalHttpGet = game.HttpGet
@@ -77,26 +76,14 @@ local l = {}
 -- 服務與玩家變數
 
 local Players = game:GetService("Players")
-
 local RunService = game:GetService("RunService")
-
 local StarterGui = game:GetService("StarterGui")
-
 local TweenService = game:GetService("TweenService")
-
 local UserInputService = game:GetService("UserInputService")
-
 local VirtualInputManager = game:GetService("VirtualInputManager")
-
 local LocalPlayer = Players.LocalPlayer
 local LP = Players.LocalPlayer
 print("第一段無問題")
-
--- 初始通知
-
-
-
--- 主題與透明度
 
 _G.WindUI:SetTheme("Dark")
 
@@ -128,7 +115,7 @@ _G.WindUI:Notify({
 
     Title = "測試成功",
 
-    Content = "WindUI 已載入並建窗！如果沒看到，按 Insert / 右 Ctrl 開啟",
+    Content = "總共會出現三個彈窗，如果只出現這一個，代表有bug",
 
     Duration = 10,
 
@@ -797,6 +784,17 @@ CriminalityTab:Button({
  })
         
 
+CriminalityTab:Button({
+        Title = "XK Crim"
+        Desc = "功能少，但有黑商透視"
+        Icon = "eyes"
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/DevSloPo/Main/refs/heads/main/Game/Criminality"))()
+            showNotification("XK載入成功", "enjoy", 5, "eyes")
+        end
+    })
+
+            
 CriminalityTab:Button({
         Title = "hide hand",
         Desc = "AntiAim",
