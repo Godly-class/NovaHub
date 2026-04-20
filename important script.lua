@@ -4070,15 +4070,15 @@ MusicTab:Section({Title = "推薦音樂", TextSize = 18})
 
 MusicTab:Button({
 
-    Title = "Rick Roll",
+    Title = "Tripping on Love a",
 
-    Desc = "依舊詐騙",
+    Desc = "jjs秤斤次",
 
     Icon = "music-2",
 
     Callback = function()
 
-        setclipboard("1842612729")
+        setclipboard("1841443579")
 
     end
 
@@ -4094,7 +4094,7 @@ MusicTab:Button({
 
     Callback = function()
 
-        setclipboard("76668137537045")
+        setclipboard("126433682497062")
 
     end
 
