@@ -1,3 +1,4 @@
+--AntiCheat bypass
 repeat task.wait() until game:IsLoaded()
 
 local function isAdonisAC(tab) 
@@ -29,6 +30,7 @@ for _,v in pairs(getgc(true)) do
         end 
     end 
 end
+
 local TargetList = {}
 local Whitelist = {}
 local function tableContains(t, value)
@@ -70,17 +72,17 @@ label.BackgroundTransparency = 1
 label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.TextSize = 15
 
--- ✅ 改成 Arcade / 像素風（官方存在）
+-- watermark
 label.FontFace = Font.new("rbxasset://fonts/families/PressStart2P.json")
 
--- ✅ 描邊（更清楚）
+
 label.TextStrokeTransparency = 0
 label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 
 label.Text = ""
 label.Parent = frame
 
--- FPS 計算
+
 local currentFps = 0
 local fpsBuffer = {}
 local fpsTimer = 0
@@ -1268,7 +1270,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-
+--RageBot Tab
 local ConfigTable = {
     Ragebot = {
         Enabled = false,
@@ -1678,6 +1680,7 @@ local function wallbang()
     
     return shootPos, hitPos, false
 end
+--hit log/kill log
 local function createHitNotification(toolName, offsetValue, playerName, usedCache)
     if not ConfigTable.Ragebot.HitNotify then return end
     
@@ -1869,7 +1872,7 @@ local function RandomString(length)
     end
     return result
 end
-
+--Ragebot
 local function shootAtTarget(targetHead)
     if not targetHead then return false end
     local localHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
@@ -1905,7 +1908,7 @@ local function shootAtTarget(targetHead)
     local events = ReplicatedStorage:WaitForChild("Events")
     local GNX_S = events:WaitForChild("GNX_S")
     local ZFKLF__H = events:WaitForChild("ZFKLF__H")
-    
+    -- shoot remote
     local args1 = {tick(), randomKey, tool, "FDS9I83", bestShootPos, {hitDirection}, false}
     local args2 = {"🧈", tool, randomKey, 1, targetHead, hitPosition, hitDirection}
     
@@ -1934,12 +1937,12 @@ coroutine.wrap(function()
         for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") then currentTool = tool break end
         end
-        
+        -- Special Tool(Tec-9. and beretta)
         local isSpecial = currentTool and (currentTool.Name == "TEC-9" or currentTool.Name == "Beretta")
         local fireRate
         
         if isSpecial then
-            fireRate = ConfigTable.Ragebot.RapidFire and 9e14 or ConfigTable.Ragebot.FireRate
+            fireRate = ConfigTable.Ragebot.RapidFire and 9e14 or ConfigTable.Ragebot.FireRate -- FireRate 9e14(99999999999999) or normal Firerate
         else
             for _, v in pairs(getgc(true)) do
                 if type(v) == "table" and rawget(v, "FireRate") and rawget(v, "Damage") and rawget(v, "MagSize") then
