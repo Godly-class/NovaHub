@@ -755,7 +755,7 @@ CriminalityTab:Button({
 
 CriminalityTab:Button({ 
         Title = "Skeet.cc",
-        Desc = "洩漏版本",
+        Desc = "leak version",
         Icon = "skull",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Godly-class/NovaHub/refs/heads/main/Skeet.lua"))()
@@ -896,11 +896,9 @@ hideButton.MouseButton1Click:Connect(function()
     if hideHeadEnabled then
         hideButton.Text = "藏頭 ON"
         hideButton.TextColor3 = Color3.fromRGB(100, 255, 100)
-        print("✅ 藏頭已開啟（頭部隱藏）")
     else
         hideButton.Text = "藏頭 OFF"
         hideButton.TextColor3 = Color3.fromRGB(255, 100, 100)
-        print("❌ 藏頭已關閉")
     end
 end)
             showNotification("藏頭開啟", "螢幕左側出現按鈕", 5, "clock")
