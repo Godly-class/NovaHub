@@ -8,7 +8,7 @@
 ]]
 
 --[[
-Dex 修复版 by TX Script
+Dex 修复版 by NGBT TEAM
 主要针对了delta等执行器反编译库损坏而推出的修复版
 感谢由lua expert提供api支持
 ]]
