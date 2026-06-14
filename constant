@@ -1,0 +1,994 @@
+print("=== SCRIPT STARTED ===")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- ========== 主題設定 ==========
+local BORDER_COLOR = Color3.fromRGB(255, 100, 149)
+local BACKGROUND_COLOR = Color3.fromRGB(0, 0, 0)
+local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
+local FONT = Font.new("rbxasset://fonts/families/PressStart2P.json")
+
+-- ========== 通知堆疊系統 ==========
+local ActiveNotifications = {}
+local function ShowNotification(Message, Duration)
+	Duration = Duration or 2.5
+
+	local Notif = Instance.new("Frame")
+	Notif.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	Notif.BorderColor3 = BORDER_COLOR
+	Notif.ZIndex = 100
+	Notif.ClipsDescendants = true
+
+	local NotifText = Instance.new("TextLabel")
+	NotifText.Parent = Notif
+	NotifText.Position = UDim2.new(0, 4, 0, 0)
+	NotifText.BackgroundTransparency = 1
+	NotifText.FontFace = FONT
+	NotifText.TextSize = 10
+	NotifText.TextColor3 = TEXT_COLOR
+	NotifText.TextXAlignment = Enum.TextXAlignment.Left
+	NotifText.Text = Message
+	NotifText.TextTruncate = Enum.TextTruncate.AtEnd
+	NotifText.ZIndex = 101
+
+	-- 自適應大小
+	local textWidth = NotifText.TextBounds.X
+	NotifText.Size = UDim2.new(0, textWidth, 0, 10)
+	Notif.Size = UDim2.new(0, textWidth + 12, 0, 14)
+
+	-- 加入堆疊
+	table.insert(ActiveNotifications, Notif)
+	Notif.Parent = PlayerGui:FindFirstChild("GameUI") or PlayerGui
+
+	-- 計算所有通知位置
+	local function RepositionAll()
+		local totalY = 28
+		for i, n in ipairs(ActiveNotifications) do
+			if n and n.Parent then
+				local targetPos = UDim2.new(0, 6, 0, totalY)
+				n:TweenPosition(targetPos, "Out", "Quad", 0.2)
+				totalY += n.AbsoluteSize.Y + 4
+			end
+		end
+		local cleaned = {}
+		for _, n in ipairs(ActiveNotifications) do
+			if n and n.Parent then
+				table.insert(cleaned, n)
+			end
+		end
+		ActiveNotifications = cleaned
+	end
+
+	Notif.Position = UDim2.new(0, -210, 0, 28)
+	RepositionAll()
+
+	task.delay(Duration, function()
+		if Notif and Notif.Parent then
+			Notif:TweenPosition(UDim2.new(0, -210, 0, Notif.Position.Y.Offset), "In", "Quad", 0.2)
+			task.delay(0.2, function()
+				if Notif and Notif.Parent then
+					Notif:Destroy()
+				end
+				RepositionAll()
+			end)
+		end
+	end)
+end
+
+-- ========== WATERMARK ==========
+local Watermark = Instance.new("Frame")
+Watermark.Name = "Watermark"
+Watermark.Size = UDim2.new(0, 0, 0, 26)
+Watermark.Position = UDim2.new(1, -10, 0, 6)
+Watermark.AnchorPoint = Vector2.new(1, 0)
+Watermark.BackgroundColor3 = BACKGROUND_COLOR
+Watermark.BorderColor3 = BORDER_COLOR
+Watermark.ZIndex = 20
+Watermark.Visible = true
+Watermark.ClipsDescendants = true
+
+local WatermarkText = Instance.new("TextLabel")
+WatermarkText.Parent = Watermark
+WatermarkText.Position = UDim2.new(0, 6, 0, 0)
+WatermarkText.BackgroundTransparency = 1
+WatermarkText.FontFace = FONT
+WatermarkText.TextSize = 13
+WatermarkText.TextColor3 = TEXT_COLOR
+WatermarkText.TextXAlignment = Enum.TextXAlignment.Left
+WatermarkText.Text = ""
+
+local MonthNames = {
+	"Jan.", "Feb.", "Mar.", "Apr.", "May", "June",
+	"July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."
+}
+
+local lastTime = os.clock()
+local fps = 60
+
+game:GetService("RunService").RenderStepped:Connect(function(step)
+	local now = os.clock()
+	local delta = now - lastTime
+	lastTime = now
+	if delta > 0 then
+		fps = math.floor(1 / delta)
+	end
+
+	local now2 = DateTime.now()
+	local year = now2.Year
+	local month = MonthNames[now2.Month]
+	local day = string.format("%02d", now2.Day)
+
+	local ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+
+	local text = string.format("Game | FPS: %d | %dms | %d/%s/%d",
+		fps, ping, year, month, now2.Day)
+
+	WatermarkText.Text = text
+	local textWidth = WatermarkText.TextBounds.X + 14
+	Watermark.Size = UDim2.new(0, textWidth, 0, 26)
+	WatermarkText.Size = UDim2.new(0, textWidth - 12, 1, 0)
+end)
+
+-- ========== UI 核心 ==========
+local UI = {}
+UI.ScreenGui = Instance.new("ScreenGui")
+UI.ScreenGui.Name = "GameUI"
+UI.ScreenGui.ResetOnSpawn = false
+UI.ScreenGui.Parent = PlayerGui
+UI.ScreenGui.IgnoreGuiInset = true
+
+local ScreenGui = UI.ScreenGui
+
+Watermark.Parent = ScreenGui
+
+-- ========== TOPBAR ==========
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = ScreenGui
+TopBar.Size = UDim2.new(1, 0, 0, 24)
+TopBar.Position = UDim2.new(0, 0, 0, 0)
+TopBar.BackgroundColor3 = BACKGROUND_COLOR
+TopBar.BorderColor3 = BORDER_COLOR
+TopBar.ZIndex = 10
+
+local GameNameLabel = Instance.new("TextLabel")
+GameNameLabel.Parent = TopBar
+GameNameLabel.BackgroundTransparency = 1
+GameNameLabel.Size = UDim2.new(0, 120, 1, 0)
+GameNameLabel.Position = UDim2.new(0, 8, 0, 0)
+GameNameLabel.FontFace = FONT
+GameNameLabel.TextSize = 13
+GameNameLabel.TextColor3 = TEXT_COLOR
+GameNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+GameNameLabel.Text = "GameName |"
+GameNameLabel.ZIndex = 10
+
+local TabContainer = Instance.new("Frame")
+TabContainer.Parent = TopBar
+TabContainer.BackgroundTransparency = 1
+TabContainer.Size = UDim2.new(1, -130, 1, 0)
+TabContainer.Position = UDim2.new(0, 120, 0, 0)
+TabContainer.ZIndex = 10
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.Parent = TabContainer
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+TabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local Indicator = Instance.new("Frame")
+Indicator.Parent = TopBar
+Indicator.BackgroundColor3 = BORDER_COLOR
+Indicator.BorderSizePixel = 0
+Indicator.Size = UDim2.new(0, 60, 0, 2)
+Indicator.Position = UDim2.new(0, 130, 1, -2)
+Indicator.ZIndex = 10
+
+local Tabs = {}
+-- ========== MAINFRAME ==========
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 800, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -400, 0, 50)
+MainFrame.BackgroundColor3 = BACKGROUND_COLOR
+MainFrame.BorderColor3 = BORDER_COLOR
+MainFrame.Visible = false
+
+-- ========== TAB 創建函數 ==========
+function UI:CreateTab(TabName)
+	local Tab = {}
+	Tab.Name = TabName
+
+	local Button = Instance.new("TextButton")
+	Button.Parent = TabContainer
+	Button.BackgroundTransparency = 1
+	Button.Size = UDim2.new(0, 100, 1, 0)
+	Button.FontFace = FONT
+	Button.TextSize = 13
+	Button.TextColor3 = TEXT_COLOR
+	Button.Text = TabName
+	Button.ZIndex = 10
+
+	table.insert(Tabs, { Button = Button, Tab = Tab })
+
+	local Page = Instance.new("Frame")
+	Page.Name = TabName .. "_Page"
+	Page.Parent = MainFrame
+	Page.Size = UDim2.fromScale(1, 1)
+	Page.BackgroundTransparency = 1
+	Page.Visible = false
+
+	Tab.Page = Page
+	Tab.Button = Button
+
+	local LeftColumn = Instance.new("ScrollingFrame")
+	LeftColumn.Name = "LeftColumn"
+	LeftColumn.Parent = Page
+	LeftColumn.Size = UDim2.new(0.48, 0, 1, -16)
+	LeftColumn.Position = UDim2.new(0, 8, 0, 8)
+	LeftColumn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	LeftColumn.BorderColor3 = BORDER_COLOR
+	LeftColumn.ScrollBarThickness = 4
+	LeftColumn.ScrollBarImageColor3 = BORDER_COLOR
+	LeftColumn.CanvasSize = UDim2.new(0, 0, 0, 0)
+	LeftColumn.ScrollingDirection = Enum.ScrollingDirection.Y
+	LeftColumn.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	LeftColumn.ClipsDescendants = true
+
+	local LeftList = Instance.new("UIListLayout")
+	LeftList.Parent = LeftColumn
+	LeftList.Padding = UDim.new(0, 6)
+	LeftList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	LeftList.SortOrder = Enum.SortOrder.LayoutOrder
+
+	local LeftPad = Instance.new("UIPadding")
+	LeftPad.Parent = LeftColumn
+	LeftPad.PaddingTop = UDim.new(0, 6)
+	LeftPad.PaddingLeft = UDim.new(0, 6)
+	LeftPad.PaddingRight = UDim.new(0, 6)
+
+	local RightColumn = Instance.new("ScrollingFrame")
+	RightColumn.Name = "RightColumn"
+	RightColumn.Parent = Page
+	RightColumn.Size = UDim2.new(0.48, 0, 1, -16)
+	RightColumn.Position = UDim2.new(0.52, 0, 0, 8)
+	RightColumn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	RightColumn.BorderColor3 = BORDER_COLOR
+	RightColumn.ScrollBarThickness = 4
+	RightColumn.ScrollBarImageColor3 = BORDER_COLOR
+	RightColumn.CanvasSize = UDim2.new(0, 0, 0, 0)
+	RightColumn.ScrollingDirection = Enum.ScrollingDirection.Y
+	RightColumn.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	RightColumn.ClipsDescendants = true
+
+	local RightList = Instance.new("UIListLayout")
+	RightList.Parent = RightColumn
+	RightList.Padding = UDim.new(0, 6)
+	RightList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	RightList.SortOrder = Enum.SortOrder.LayoutOrder
+
+	local RightPad = Instance.new("UIPadding")
+	RightPad.Parent = RightColumn
+	RightPad.PaddingTop = UDim.new(0, 6)
+	RightPad.PaddingLeft = UDim.new(0, 6)
+	RightPad.PaddingRight = UDim.new(0, 6)
+
+	-- ========== SECTION 創建函數 ==========
+	function Tab:CreateSection(SectionName, Side)
+		local Section = {}
+
+		local Column = (Side == "Right") and RightColumn or LeftColumn
+
+		local Card = Instance.new("Frame")
+		Card.Name = SectionName
+		Card.Parent = Column
+		Card.Size = UDim2.new(1, -4, 0, 30)
+		Card.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		Card.BorderColor3 = BORDER_COLOR
+		Card.ClipsDescendants = true
+
+		local CardTitle = Instance.new("TextLabel")
+		CardTitle.Parent = Card
+		CardTitle.Size = UDim2.new(1, -10, 0, 16)
+		CardTitle.Position = UDim2.new(0, 5, 0, 3)
+		CardTitle.BackgroundTransparency = 1
+		CardTitle.FontFace = FONT
+		CardTitle.TextSize = 9
+		CardTitle.TextColor3 = BORDER_COLOR
+		CardTitle.TextXAlignment = Enum.TextXAlignment.Left
+		CardTitle.Text = SectionName:upper()
+
+		local Divider = Instance.new("Frame")
+		Divider.Parent = Card
+		Divider.Size = UDim2.new(1, -10, 0, 1)
+		Divider.Position = UDim2.new(0, 5, 0, 20)
+		Divider.BackgroundColor3 = BORDER_COLOR
+		Divider.BorderSizePixel = 0
+
+		local ContentHolder = Instance.new("Frame")
+		ContentHolder.Name = "Content"
+		ContentHolder.Parent = Card
+		ContentHolder.Size = UDim2.new(1, -10, 0, 0)
+		ContentHolder.Position = UDim2.new(0, 5, 0, 24)
+		ContentHolder.BackgroundTransparency = 1
+
+		local ContentList = Instance.new("UIListLayout")
+		ContentList.Parent = ContentHolder
+		ContentList.Padding = UDim.new(0, 4)
+		ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+
+		local itemHeights = {}
+
+		local function UpdateCardHeight()
+			local totalHeight = 0
+			for _, h in ipairs(itemHeights) do
+				totalHeight = totalHeight + h
+			end
+			local gapCount = math.max(#itemHeights - 1, 0)
+			totalHeight = totalHeight + gapCount * 4
+
+			if totalHeight > 0 then
+				Card.Size = UDim2.new(1, -4, 0, totalHeight + 30)
+			else
+				Card.Size = UDim2.new(1, -4, 0, 30)
+			end
+		end
+
+		-- ========== BUTTON ==========
+		function Section:CreateButton(ButtonText, Callback)
+			local Btn = Instance.new("TextButton")
+			Btn.Parent = ContentHolder
+			Btn.Size = UDim2.new(1, 0, 0, 24)
+			Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+			Btn.BorderColor3 = BORDER_COLOR
+			Btn.FontFace = FONT
+			Btn.TextSize = 10
+			Btn.TextColor3 = TEXT_COLOR
+			Btn.Text = ButtonText
+			Btn.AutoButtonColor = false
+
+			Btn.MouseEnter:Connect(function()
+				Btn.BackgroundColor3 = BORDER_COLOR
+				Btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+			end)
+			Btn.MouseLeave:Connect(function()
+				Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+				Btn.TextColor3 = TEXT_COLOR
+			end)
+			Btn.MouseButton1Click:Connect(function()
+				if Callback then Callback() end
+			end)
+
+			table.insert(itemHeights, 24)
+			UpdateCardHeight()
+			return Btn
+		end
+
+		-- ========== TOGGLE ==========
+		function Section:CreateToggle(ToggleText, Default, Callback)
+			Default = Default or false
+
+			local ToggleContainer = Instance.new("TextButton")
+			ToggleContainer.Parent = ContentHolder
+			ToggleContainer.Size = UDim2.new(1, 0, 0, 24)
+			ToggleContainer.BackgroundTransparency = 1
+			ToggleContainer.Text = ""
+			ToggleContainer.AutoButtonColor = false
+
+			local NameLabel = Instance.new("TextLabel")
+			NameLabel.Parent = ToggleContainer
+			NameLabel.Size = UDim2.new(1, -50, 1, 0)
+			NameLabel.BackgroundTransparency = 1
+			NameLabel.FontFace = FONT
+			NameLabel.TextSize = 10
+			NameLabel.TextColor3 = TEXT_COLOR
+			NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+			NameLabel.Text = ToggleText
+
+			local ToggleBox = Instance.new("Frame")
+			ToggleBox.Parent = ToggleContainer
+			ToggleBox.Size = UDim2.new(0, 40, 0, 18)
+			ToggleBox.Position = UDim2.new(1, -42, 0.5, -9)
+			ToggleBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			ToggleBox.BorderColor3 = BORDER_COLOR
+
+			local Knob = Instance.new("Frame")
+			Knob.Parent = ToggleBox
+			Knob.Size = UDim2.new(0, 14, 0, 14)
+			Knob.Position = UDim2.new(0, 2, 0.5, -7)
+			Knob.BackgroundColor3 = BORDER_COLOR
+			Knob.BorderSizePixel = 0
+
+			local ToggleState = Default
+
+			local function UpdateVisual()
+				if ToggleState then
+					ToggleBox.BackgroundColor3 = BORDER_COLOR
+					Knob.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+					Knob:TweenPosition(UDim2.new(0, 24, 0.5, -7), "Out", "Quad", 0.15)
+				else
+					ToggleBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+					Knob.BackgroundColor3 = BORDER_COLOR
+					Knob:TweenPosition(UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.15)
+				end
+			end
+
+			if Default then
+				ToggleState = true
+				task.defer(UpdateVisual)
+			end
+
+			ToggleContainer.MouseButton1Click:Connect(function()
+				ToggleState = not ToggleState
+				UpdateVisual()
+				if Callback then Callback(ToggleState) end
+			end)
+
+			table.insert(itemHeights, 24)
+			UpdateCardHeight()
+
+			return {
+				Set = function(value)
+					ToggleState = value
+					UpdateVisual()
+				end,
+				Get = function()
+					return ToggleState
+				end
+			}
+		end
+
+		-- ========== TEXTBOX ==========
+		function Section:CreateTextBox(Placeholder, Callback)
+			local Box = Instance.new("TextBox")
+			Box.Parent = ContentHolder
+			Box.Size = UDim2.new(1, 0, 0, 26)
+			Box.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			Box.BorderColor3 = BORDER_COLOR
+			Box.FontFace = FONT
+			Box.TextSize = 10
+			Box.TextColor3 = TEXT_COLOR
+			Box.PlaceholderText = Placeholder or ""
+			Box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+			Box.Text = ""
+			Box.ClearTextOnFocus = false
+
+			Box.FocusLost:Connect(function(enterPressed)
+				if enterPressed and Callback then
+					Callback(Box.Text)
+				end
+			end)
+
+			table.insert(itemHeights, 26)
+			UpdateCardHeight()
+			return Box
+		end
+		end
+
+		-- ========== SLIDER ==========
+		function Section:CreateSlider(SliderText, Min, Max, Default, Callback)
+			Min = Min or 0
+			Max = Max or 100
+			Default = Default or 50
+
+			local SliderContainer = Instance.new("Frame")
+			SliderContainer.Parent = ContentHolder
+			SliderContainer.Size = UDim2.new(1, 0, 0, 32)
+			SliderContainer.BackgroundTransparency = 1
+
+			local SliderLabel = Instance.new("TextLabel")
+			SliderLabel.Parent = SliderContainer
+			SliderLabel.Size = UDim2.new(1, 0, 0, 14)
+			SliderLabel.BackgroundTransparency = 1
+			SliderLabel.FontFace = FONT
+			SliderLabel.TextSize = 9
+			SliderLabel.TextColor3 = TEXT_COLOR
+			SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+			SliderLabel.Text = SliderText .. ": " .. Default
+
+			local Track = Instance.new("Frame")
+			Track.Parent = SliderContainer
+			Track.Size = UDim2.new(1, 0, 0, 6)
+			Track.Position = UDim2.new(0, 0, 0, 18)
+			Track.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			Track.BorderColor3 = BORDER_COLOR
+
+			local Fill = Instance.new("Frame")
+			Fill.Parent = Track
+			Fill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+			Fill.BackgroundColor3 = BORDER_COLOR
+			Fill.BorderSizePixel = 0
+
+			local Knob = Instance.new("Frame")
+			Knob.Parent = Track
+			Knob.Size = UDim2.new(0, 10, 0, 14)
+			Knob.Position = UDim2.new((Default - Min) / (Max - Min), -5, 0.5, -7)
+			Knob.BackgroundColor3 = TEXT_COLOR
+			Knob.BorderSizePixel = 0
+
+			local currentValue = Default
+			local isDragging = false
+			local dragConnection = nil
+
+			local function SetValueFromPosition(input)
+				local pos = (input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X
+				pos = math.clamp(pos, 0, 1)
+				currentValue = math.floor(Min + pos * (Max - Min))
+				Fill.Size = UDim2.new(pos, 0, 1, 0)
+				Knob.Position = UDim2.new(pos, -5, 0.5, -7)
+				SliderLabel.Text = SliderText .. ": " .. currentValue
+				if Callback then Callback(currentValue) end
+			end
+
+			local function StartDrag(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch then
+					isDragging = true
+					SetValueFromPosition(input)
+
+					dragConnection = UserInputService.InputChanged:Connect(function(changed)
+						if isDragging and (changed.UserInputType == Enum.UserInputType.MouseMovement
+							or changed.UserInputType == Enum.UserInputType.Touch) then
+							SetValueFromPosition(changed)
+						end
+					end)
+				end
+			end
+
+			local function StopDrag(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch then
+					isDragging = false
+					if dragConnection then
+						dragConnection:Disconnect()
+						dragConnection = nil
+					end
+				end
+			end
+
+			Knob.InputBegan:Connect(StartDrag)
+			Knob.InputEnded:Connect(StopDrag)
+
+			Track.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch then
+					SetValueFromPosition(input)
+					StartDrag(input)
+				end
+			end)
+			Track.InputEnded:Connect(StopDrag)
+
+			UserInputService.InputEnded:Connect(function(input)
+				if isDragging and (input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch) then
+					StopDrag(input)
+				end
+			end)
+
+			table.insert(itemHeights, 32)
+			UpdateCardHeight()
+
+			return {
+				Set = function(value)
+					currentValue = math.clamp(value, Min, Max)
+					local pos = (currentValue - Min) / (Max - Min)
+					Fill.Size = UDim2.new(pos, 0, 1, 0)
+					Knob.Position = UDim2.new(pos, -5, 0.5, -7)
+					SliderLabel.Text = SliderText .. ": " .. currentValue
+				end,
+				Get = function()
+					return currentValue
+				end
+			}
+		end
+
+		-- ========== DROPDOWN ==========
+		function Section:CreateDropdown(DropdownText, Options, Callback)
+			Options = Options or {}
+
+			local DropContainer = Instance.new("Frame")
+			DropContainer.Parent = ContentHolder
+			DropContainer.Size = UDim2.new(1, 0, 0, 30)
+			DropContainer.BackgroundTransparency = 1
+
+			local DropBtn = Instance.new("TextButton")
+			DropBtn.Parent = DropContainer
+			DropBtn.Size = UDim2.new(1, 0, 0, 26)
+			DropBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			DropBtn.BorderColor3 = BORDER_COLOR
+			DropBtn.FontFace = FONT
+			DropBtn.TextSize = 10
+			DropBtn.TextColor3 = TEXT_COLOR
+			DropBtn.TextXAlignment = Enum.TextXAlignment.Left
+			DropBtn.Text = "  " .. DropdownText
+			DropBtn.AutoButtonColor = false
+
+			local Arrow = Instance.new("TextLabel")
+			Arrow.Parent = DropBtn
+			Arrow.Size = UDim2.new(0, 20, 1, 0)
+			Arrow.Position = UDim2.new(1, -20, 0, 0)
+			Arrow.BackgroundTransparency = 1
+			Arrow.FontFace = FONT
+			Arrow.TextSize = 10
+			Arrow.TextColor3 = BORDER_COLOR
+			Arrow.Text = "▼"
+
+			local DropList = Instance.new("ScrollingFrame")
+			DropList.Parent = DropContainer
+			DropList.Size = UDim2.new(1, 0, 0, 0)
+			DropList.Position = UDim2.new(0, 0, 0, 28)
+			DropList.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			DropList.BorderColor3 = BORDER_COLOR
+			DropList.ScrollBarThickness = 3
+			DropList.ScrollBarImageColor3 = BORDER_COLOR
+			DropList.CanvasSize = UDim2.new(0, 0, 0, 0)
+			DropList.ScrollingDirection = Enum.ScrollingDirection.Y
+			DropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			DropList.ClipsDescendants = true
+			DropList.ZIndex = 10
+
+			local DropLayout = Instance.new("UIListLayout")
+			DropLayout.Parent = DropList
+			DropLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+			local isOpen = false
+
+			for _, opt in ipairs(Options) do
+				local OptBtn = Instance.new("TextButton")
+				OptBtn.Parent = DropList
+				OptBtn.Size = UDim2.new(1, 0, 0, 22)
+				OptBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+				OptBtn.BorderSizePixel = 0
+				OptBtn.FontFace = FONT
+				OptBtn.TextSize = 10
+				OptBtn.TextColor3 = TEXT_COLOR
+				OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+				OptBtn.Text = "  " .. opt
+				OptBtn.ZIndex = 10
+
+				OptBtn.MouseEnter:Connect(function()
+					OptBtn.BackgroundColor3 = BORDER_COLOR
+				end)
+				OptBtn.MouseLeave:Connect(function()
+					OptBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+				end)
+				OptBtn.MouseButton1Click:Connect(function()
+					DropBtn.Text = "  " .. opt
+					DropList.Size = UDim2.new(1, 0, 0, 0)
+					DropContainer.Size = UDim2.new(1, 0, 0, 30)
+					isOpen = false
+					itemHeights[#itemHeights] = 30
+					UpdateCardHeight()
+					if Callback then Callback(opt) end
+				end)
+			end
+
+			DropBtn.MouseButton1Click:Connect(function()
+				isOpen = not isOpen
+				if isOpen then
+					local listHeight = math.min(#Options * 22, 100)
+					DropList.Size = UDim2.new(1, 0, 0, listHeight)
+					DropContainer.Size = UDim2.new(1, 0, 0, 30 + listHeight)
+					itemHeights[#itemHeights] = 30 + listHeight
+					UpdateCardHeight()
+				else
+					DropList.Size = UDim2.new(1, 0, 0, 0)
+					DropContainer.Size = UDim2.new(1, 0, 0, 30)
+					itemHeights[#itemHeights] = 30
+					UpdateCardHeight()
+				end
+			end)
+
+			table.insert(itemHeights, 30)
+			UpdateCardHeight()
+			return DropBtn
+		end
+
+		-- ========== COLOR PICKER ==========
+		function Section:CreateColorPicker(PickerText, DefaultColor, Callback)
+			DefaultColor = DefaultColor or Color3.fromRGB(255, 100, 149)
+
+			local ColorH, ColorS, ColorV = DefaultColor:ToHSV()
+
+			local PickerContainer = Instance.new("Frame")
+			PickerContainer.Parent = ContentHolder
+			PickerContainer.Size = UDim2.new(1, 0, 0, 36)
+			PickerContainer.BackgroundTransparency = 1
+
+			local PickerLabel = Instance.new("TextLabel")
+			PickerLabel.Parent = PickerContainer
+			PickerLabel.Size = UDim2.new(0, 80, 0, 14)
+			PickerLabel.Position = UDim2.new(0, 0, 0, 0)
+			PickerLabel.BackgroundTransparency = 1
+			PickerLabel.FontFace = FONT
+			PickerLabel.TextSize = 9
+			PickerLabel.TextColor3 = TEXT_COLOR
+			PickerLabel.TextXAlignment = Enum.TextXAlignment.Left
+			PickerLabel.Text = PickerText
+
+			local PreviewOuter = Instance.new("Frame")
+			PreviewOuter.Parent = PickerContainer
+			PreviewOuter.Size = UDim2.new(0, 34, 0, 18)
+			PreviewOuter.Position = UDim2.new(1, -34, 0, -2)
+			PreviewOuter.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+			PreviewOuter.BorderSizePixel = 0
+
+			local PreviewBox = Instance.new("TextButton")
+			PreviewBox.Parent = PreviewOuter
+			PreviewBox.Size = UDim2.new(1, -2, 1, -2)
+			PreviewBox.Position = UDim2.new(0, 1, 0, 1)
+			PreviewBox.BackgroundColor3 = DefaultColor
+			PreviewBox.Text = ""
+			PreviewBox.AutoButtonColor = false
+			PreviewBox.BorderSizePixel = 0
+
+			local HexLabel = Instance.new("TextLabel")
+			HexLabel.Parent = PickerContainer
+			HexLabel.Size = UDim2.new(1, -42, 0, 14)
+			HexLabel.Position = UDim2.new(0, 0, 0, 16)
+			HexLabel.BackgroundTransparency = 1
+			HexLabel.FontFace = FONT
+			HexLabel.TextSize = 8
+			HexLabel.TextColor3 = BORDER_COLOR
+			HexLabel.TextXAlignment = Enum.TextXAlignment.Left
+			HexLabel.Text = string.format("#%02X%02X%02X",
+				math.floor(DefaultColor.R * 255),
+				math.floor(DefaultColor.G * 255),
+				math.floor(DefaultColor.B * 255))
+
+			local ColorWindow = Instance.new("Frame")
+			ColorWindow.Parent = ScreenGui
+			ColorWindow.Size = UDim2.new(0, 180, 0, 160)
+			ColorWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
+			ColorWindow.BorderSizePixel = 1
+			ColorWindow.BorderColor3 = Color3.fromRGB(45, 45, 50)
+			ColorWindow.Visible = false
+			ColorWindow.ZIndex = 50
+
+			local SatMap = Instance.new("ImageButton")
+			SatMap.Parent = ColorWindow
+			SatMap.Size = UDim2.new(0, 150, 0, 150)
+			SatMap.Position = UDim2.new(0, 5, 0, 5)
+			SatMap.Image = "rbxassetid://4155801252"
+			SatMap.ScaleType = Enum.ScaleType.Slice
+			SatMap.BorderSizePixel = 0
+			SatMap.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+			SatMap.ZIndex = 50
+
+			local HueMap = Instance.new("ImageButton")
+			HueMap.Parent = ColorWindow
+			HueMap.Size = UDim2.new(0, 15, 0, 150)
+			HueMap.Position = UDim2.new(0, 160, 0, 5)
+			HueMap.Image = "rbxassetid://4155801252"
+			HueMap.BorderSizePixel = 0
+			HueMap.ZIndex = 50
+
+			local HueGradient = Instance.new("UIGradient")
+			HueGradient.Parent = HueMap
+			HueGradient.Rotation = -90
+			HueGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 0, 0)),
+				ColorSequenceKeypoint.new(0.17, Color3.new(1, 1, 0)),
+				ColorSequenceKeypoint.new(0.33, Color3.new(0, 1, 0)),
+				ColorSequenceKeypoint.new(0.5, Color3.new(0, 1, 1)),
+				ColorSequenceKeypoint.new(0.67, Color3.new(0, 0, 1)),
+				ColorSequenceKeypoint.new(0.83, Color3.new(1, 0, 1)),
+				ColorSequenceKeypoint.new(1, Color3.new(1, 0, 0))
+			})
+
+			local Pointer = Instance.new("Frame")
+			Pointer.Parent = SatMap
+			Pointer.Size = UDim2.new(0, 4, 0, 4)
+			Pointer.BackgroundColor3 = Color3.new(1, 1, 1)
+			Pointer.BorderColor3 = Color3.new(0, 0, 0)
+			Pointer.BorderSizePixel = 1
+			Pointer.ZIndex = 51
+			Pointer.Position = UDim2.new(ColorS, 0, 1 - ColorV, 0)
+
+			local HuePointer = Instance.new("Frame")
+			HuePointer.Parent = HueMap
+			HuePointer.Size = UDim2.new(1, 0, 0, 2)
+			HuePointer.BackgroundColor3 = Color3.new(1, 1, 1)
+			HuePointer.BorderColor3 = Color3.new(0, 0, 0)
+			HuePointer.BorderSizePixel = 1
+			HuePointer.ZIndex = 51
+			HuePointer.Position = UDim2.new(0, 0, 1 - ColorH, 0)
+
+			local function UpdateColor()
+				local finalColor = Color3.fromHSV(ColorH, ColorS, ColorV)
+				SatMap.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+				PreviewBox.BackgroundColor3 = finalColor
+				Pointer.Position = UDim2.new(ColorS, 0, 1 - ColorV, 0)
+				HuePointer.Position = UDim2.new(0, 0, 1 - ColorH, 0)
+				HexLabel.Text = string.format("#%02X%02X%02X",
+					math.floor(finalColor.R * 255),
+					math.floor(finalColor.G * 255),
+					math.floor(finalColor.B * 255))
+				if Callback then Callback(finalColor) end
+			end
+
+			PreviewBox.MouseButton1Click:Connect(function()
+				ColorWindow.Visible = not ColorWindow.Visible
+				local posX = PreviewBox.AbsolutePosition.X - 175
+				local posY = PreviewBox.AbsolutePosition.Y - 140
+				ColorWindow.Position = UDim2.new(0, math.max(0, posX), 0, math.max(0, posY))
+			end)
+
+			SatMap.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					local con
+					con = UserInputService.InputChanged:Connect(function(input)
+						if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+							ColorS = math.clamp((input.Position.X - SatMap.AbsolutePosition.X) / SatMap.AbsoluteSize.X, 0, 1)
+							ColorV = 1 - math.clamp((input.Position.Y - SatMap.AbsolutePosition.Y) / SatMap.AbsoluteSize.Y, 0, 1)
+							UpdateColor()
+						end
+					end)
+					UserInputService.InputEnded:Connect(function(input)
+						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+							con:Disconnect()
+						end
+					end)
+				end
+			end)
+
+			HueMap.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					local con
+					con = UserInputService.InputChanged:Connect(function(input)
+						if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+							ColorH = 1 - math.clamp((input.Position.Y - HueMap.AbsolutePosition.Y) / HueMap.AbsoluteSize.Y, 0, 1)
+							UpdateColor()
+						end
+					end)
+					UserInputService.InputEnded:Connect(function(input)
+						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+							con:Disconnect()
+						end
+					end)
+				end
+			end)
+
+			UpdateColor()
+
+			table.insert(itemHeights, 36)
+			UpdateCardHeight()
+
+			return {
+				Set = function(color)
+					ColorH, ColorS, ColorV = color:ToHSV()
+					UpdateColor()
+				end,
+				Get = function()
+					return Color3.fromHSV(ColorH, ColorS, ColorV)
+				end
+			}
+		end
+
+		return Section
+	end
+
+	-- ========== TAB 點擊事件 ==========
+	local TabOpen = false
+
+	Button.MouseButton1Click:Connect(function()
+		if TabOpen then
+			Page.Visible = false
+			MainFrame.Visible = false
+			TabOpen = false
+
+			for _, t in ipairs(Tabs) do
+				t.Button.TextColor3 = TEXT_COLOR
+			end
+		else
+			for _, child in ipairs(MainFrame:GetChildren()) do
+				if child:IsA("Frame") then
+					child.Visible = false
+				end
+			end
+
+			for _, t in ipairs(Tabs) do
+				t.Tab.TabOpen = false
+				t.Button.TextColor3 = TEXT_COLOR
+			end
+
+			Page.Visible = true
+			MainFrame.Visible = true
+			TabOpen = true
+
+			Button.TextColor3 = BORDER_COLOR
+
+			task.wait()
+			Indicator.Size = UDim2.new(0, Button.AbsoluteSize.X - 20, 0, 2)
+			Indicator.Position = UDim2.new(0, Button.AbsolutePosition.X + 10, 0, 22)
+		end
+	end)
+
+	Tab.TabOpen = TabOpen
+
+	return Tab
+end
+-- ====================================================
+-- ========== 實際創建 UI 內容 =========================
+-- ====================================================
+
+local Tab1 = UI:CreateTab("Legitbot")
+local Tab2 = UI:CreateTab("Visual")
+local Tab3 = UI:CreateTab("Misc")
+local Tab4 = UI:CreateTab("Settings")
+
+-- === Legitbot 頁面 ===
+local Left1 = Tab1:CreateSection("Aimbot", "Left")
+Left1:CreateButton("Test Aimbot", function()
+	ShowNotification("Legit Aimbot Test")
+end)
+Left1:CreateToggle("Silent Aim", false, function(state)
+	ShowNotification("Silent Aim: " .. (state and "ON" or "OFF"))
+end)
+
+local Right1 = Tab1:CreateSection("Targeting", "Right")
+Right1:CreateSlider("FOV", 10, 360, 90, function(val)
+	print("FOV:", val)
+end)
+Right1:CreateDropdown("Hit Part", {"Head", "Torso", "Random"}, function(opt)
+	ShowNotification("Selected: " .. opt)
+end)
+
+-- === Visual 頁面 ===
+local Left2 = Tab2:CreateSection("ESP", "Left")
+Left2:CreateToggle("Box ESP", false, function(state)
+	ShowNotification("Box ESP: " .. (state and "ON" or "OFF"))
+end)
+Left2:CreateToggle("Name ESP", true, function(state)
+	ShowNotification("Name ESP: " .. (state and "ON" or "OFF"))
+end)
+
+local Right2 = Tab2:CreateSection("Colors", "Right")
+Right2:CreateTextBox("Enter Hex...", function(text)
+	ShowNotification("Hex: " .. text)
+end)
+
+-- === Misc 頁面 ===
+local Left3 = Tab3:CreateSection("Movement", "Left")
+Left3:CreateToggle("Bunny Hop", false, function(state)
+	ShowNotification("Bhop: " .. (state and "ON" or "OFF"))
+end)
+Left3:CreateSlider("Speed", 16, 100, 16, function(val)
+	print("Speed:", val)
+end)
+
+-- === Settings 頁面 ===
+local Left4 = Tab4:CreateSection("UI Settings", "Left")
+Left4:CreateButton("Reset Settings", function()
+	ShowNotification("Settings Reset")
+end)
+Left4:CreateToggle("Show Notifications", true, function(state)
+	ShowNotification("Notifications: " .. (state and "ON" or "OFF"))
+end)
+Left4:CreateToggle("Watermark", true, function(state)
+	Watermark.Visible = state
+end)
+
+local Right4 = Tab4:CreateSection("Theme Colors", "Right")
+Right4:CreateColorPicker("Primary Color", Color3.fromRGB(255, 100, 149), function(color)
+	ShowNotification("Color: #" .. string.format("%02X%02X%02X",
+		math.floor(color.R * 255),
+		math.floor(color.G * 255),
+		math.floor(color.B * 255)))
+end)
+-- 除錯：檢查 UI 是否存在
+print("ScreenGui exists:", ScreenGui ~= nil)
+print("ScreenGui.Parent:", ScreenGui.Parent)
+print("TopBar exists:", ScreenGui:FindFirstChild("TopBar") ~= nil)
+print("MainFrame exists:", ScreenGui:FindFirstChild("MainFrame") ~= nil)
+print("Watermark exists:", ScreenGui:FindFirstChild("Watermark") ~= nil)
+
+-- 強制顯示
+MainFrame.Visible = true
+TopBar.Visible = true
+Watermark.Visible = true
+print("UI Library Loaded!")
