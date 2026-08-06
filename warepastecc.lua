@@ -307,7 +307,7 @@ function Library:CreateWindow(Title, Size)
                 })
                 local function Update(input)
                     local pos = math.clamp((input.Position.X - Tray.AbsolutePosition.X) / Tray.AbsoluteSize.X, 0, 1)
-                    local val = Min + (Max - Min) * pos
+                    local val = math.round((Min + (Max - Min) * pos) * 100) / 100
                     Fill.Size = UDim2.new(pos, 0, 1, 0)
                     ValueText.Position = UDim2.new(pos, 0, 0, 22)
                     ValueText.Text = tostring(val) .. Suffix
