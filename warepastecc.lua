@@ -1,6 +1,7 @@
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Library = {
     Flags = {},
     Theme = {
@@ -322,137 +323,225 @@ function Library:CreateWindow(Title, Size)
             end
 
             function Section:CreateListbox(Text, Options, Multi, Callback)
-                local Flag = Text:gsub("%s+", "")
-                local List = {Selected = {}, Options = Options}
-                Library.Flags[Flag] = Multi and {} or nil
-                
-                local ListboxFrame = Create("Frame", {
-                    Parent = SecContent, 
-                    Size = UDim2.new(1, 0, 0, 120), 
-                    BackgroundTransparency = 1
-                })
-                
-                Create("TextLabel", {
-                    Parent = ListboxFrame, 
-                    Text = Text, 
-                    Size = UDim2.new(1, 0, 0, 16), 
-                    BackgroundTransparency = 1, 
-                    TextColor3 = Library.Theme.Text, 
-                    FontFace = Library.Font, 
-                    TextSize = 13, 
-                    TextXAlignment = "Left"
-                })
-                
-                local Tray = Create("ScrollingFrame", {
-                    Parent = ListboxFrame, 
-                    Size = UDim2.new(1, 0, 0, 100), 
-                    Position = UDim2.new(0, 0, 0, 16), 
-                    BackgroundColor3 = Library.Theme.SectionInlay, 
-                    BorderSizePixel = 1, 
-                    BorderColor3 = Library.Theme.InnerOutline, 
-                    CanvasSize = UDim2.new(0,0,0,0), 
-                    AutomaticCanvasSize = "Y", 
-                    ScrollBarThickness = 2, 
-                    ScrollBarImageColor3 = Library.Theme.Accent
-                })
-                
-                Create("UIListLayout", {Parent = Tray})
-                
-                local function RenderOptions()
-    -- ✅ 先確保 Tray 存在
-    if not Tray or not Tray.Parent then
-        return
+    local Flag = Text:gsub("%s+", "")
+    local List = {Selected = {}, Options = Options}
+    Library.Flags[Flag] = Multi and {} or nil
+
+    -- 主容器
+    local ListboxFrame = Create("Frame", {
+        Parent = SecContent,
+        Size = UDim2.new(1, 0, 0, 30),  -- 固定標題高度
+        BackgroundTransparency = 1,
+        ClipsDescendants = false,
+    })
+
+    -- 標題按鈕（可點擊）
+    local TitleBtn = Create("TextButton", {
+        Parent = ListboxFrame,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Library.Theme.SectionInlay,
+        BorderSizePixel = 1,
+        BorderColor3 = Library.Theme.InnerOutline,
+        Text = "",
+        AutoButtonColor = false,
+        FontFace = Library.Font,
+        TextSize = 13,
+        TextColor3 = Library.Theme.Text,
+        TextXAlignment = "Left",
+    })
+    ApplyShadow(TitleBtn)
+
+    -- 標題文字（左側）
+    local TitleLabel = Create("TextLabel", {
+        Parent = TitleBtn,
+        Text = "  " .. Text,
+        Size = UDim2.new(1, -30, 1, 0),
+        BackgroundTransparency = 1,
+        TextColor3 = Library.Theme.Text,
+        FontFace = Library.Font,
+        TextSize = 13,
+        TextXAlignment = "Left",
+    })
+
+    -- 箭頭圖示（右側）
+    local Arrow = Create("TextLabel", {
+        Parent = TitleBtn,
+        Text = "▼",
+        Size = UDim2.new(0, 24, 1, 0),
+        Position = UDim2.new(1, -24, 0, 0),
+        BackgroundTransparency = 1,
+        TextColor3 = Library.Theme.Text,
+        FontFace = Library.Font,
+        TextSize = 14,
+        TextXAlignment = "Center",
+    })
+
+    -- 下拉容器（動畫用）
+    local DropdownContainer = Create("Frame", {
+        Parent = ListboxFrame,
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Library.Theme.Main,
+        BorderSizePixel = 1,
+        BorderColor3 = Library.Theme.InnerOutline,
+        ClipsDescendants = true,
+        Visible = false,
+        ZIndex = 10,
+    })
+
+    -- 內部滾動框（顯示選項）
+    local DropdownScroller = Create("ScrollingFrame", {
+        Parent = DropdownContainer,
+        Size = UDim2.new(1, -2, 1, -2),
+        Position = UDim2.new(0, 1, 0, 1),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = Library.Theme.Accent,
+        CanvasSize = UDim2.new(0,0,0,0),
+        AutomaticCanvasSize = "Y",
+    })
+    Create("UIListLayout", {Parent = DropdownScroller, Padding = UDim.new(0, 2)})
+
+    -- 狀態
+    local isOpen = false
+    local maxHeight = 200  -- 最大展開高度，超過滾動
+
+    -- 更新標題文字（顯示當前選擇）
+    local function UpdateTitle()
+        local selected = List.Selected
+        if #selected == 0 then
+            TitleLabel.Text = "  " .. Text
+        elseif Multi then
+            TitleLabel.Text = "  " .. Text .. " (" .. #selected .. " selected)"
+        else
+            TitleLabel.Text = "  " .. Text .. ": " .. selected[1]
+        end
     end
-    
-    -- ✅ 安全清理舊選項（使用 GetChildren() or {} 防護）
-    local children = Tray:GetChildren()
-    if children then
-        for _, v in next, children do
-            if v and v:IsA("TextButton") then
-                v:Destroy()
+
+    -- 渲染選項（重構下拉列表）
+    local function RenderOptions()
+        -- 清空舊選項
+        for _, child in ipairs(DropdownScroller:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        -- 創建新選項
+        for _, opt in ipairs(List.Options) do
+            local OptBtn = Create("TextButton", {
+                Parent = DropdownScroller,
+                Size = UDim2.new(1, 0, 0, 22),
+                BackgroundTransparency = 1,
+                Text = "  " .. opt,
+                FontFace = Library.Font,
+                TextSize = 13,
+                TextColor3 = table.find(List.Selected, opt) and Library.Theme.Accent or Library.Theme.Text,
+                TextXAlignment = "Left",
+                AutoButtonColor = false,
+            })
+
+            OptBtn.Activated:Connect(function()
+                if Multi then
+                    local idx = table.find(List.Selected, opt)
+                    if idx then
+                        table.remove(List.Selected, idx)
+                    else
+                        table.insert(List.Selected, opt)
+                    end
+                else
+                    List.Selected = {opt}
+                    -- 單選：關閉下拉
+                    ToggleDropdown(false)
+                end
+
+                Library.Flags[Flag] = Multi and List.Selected or List.Selected[1]
+                UpdateTitle()
+                RenderOptions()  -- 刷新高亮
+                Callback(Library.Flags[Flag])
+            end)
+        end
+        -- 更新滾動框畫布高度
+        DropdownScroller.CanvasSize = UDim2.new(0,0,0, #List.Options * 24)
+    end
+
+    -- 展開／收合動畫
+    local function ToggleDropdown(open)
+        isOpen = (open == nil) and not isOpen or open
+        local targetHeight = isOpen and math.min(#List.Options * 24, maxHeight) or 0
+        DropdownContainer.Visible = true
+        local tween = TweenService:Create(DropdownContainer, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(1, 0, 0, targetHeight)
+        })
+        tween:Play()
+        tween.Completed:Connect(function()
+            if not isOpen then
+                DropdownContainer.Visible = false
+            end
+        end)
+        Arrow.Text = isOpen and "▲" or "▼"
+    end
+
+    -- 點擊標題切換展開
+    TitleBtn.Activated:Connect(function()
+        ToggleDropdown()
+        if isOpen then
+            RenderOptions()
+        end
+    end)
+
+    -- 外部點擊關閉（可選：點擊非下拉區域）
+    -- 簡單起見，僅靠標題切換
+
+    -- 初始化
+    RenderOptions()
+    UpdateTitle()
+
+    -- List 物件方法
+    function List:Add(opt)
+        table.insert(self.Options, opt)
+        RenderOptions()
+        -- 若開啟中，保持顯示
+        if isOpen then
+            ToggleDropdown(true)
+        end
+    end
+
+    function List:Remove(opt)
+        local i = table.find(self.Options, opt)
+        if i then
+            table.remove(self.Options, i)
+            -- 同時移除選中
+            local selIdx = table.find(self.Selected, opt)
+            if selIdx then
+                table.remove(self.Selected, selIdx)
+                Library.Flags[Flag] = Multi and self.Selected or self.Selected[1]
+                Callback(Library.Flags[Flag])
+            end
+            RenderOptions()
+            UpdateTitle()
+            if isOpen then
+                ToggleDropdown(true)
             end
         end
     end
-    
-    -- ✅ 確保 List.Options 是 table
-    if not List.Options or type(List.Options) ~= "table" then
-        return
-    end
-    
-    -- ✅ 創建新選項
-    for _, opt in next, List.Options do
-        local OptBtn = Create("TextButton", {
-            Parent = Tray,
-            Size = UDim2.new(1, 0, 0, 20),
-            BackgroundTransparency = 1,
-            Text = "  " .. opt,
-            FontFace = Library.Font,
-            TextSize = 13,
-            TextColor3 = table.find(List.Selected, opt) and Library.Theme.Accent or Library.Theme.Text,
-            TextXAlignment = "Left",
-            AutoButtonColor = false
-        })
-        
-        OptBtn.Activated:Connect(function()
-            if Multi then
-                if table.find(List.Selected, opt) then
-                    table.remove(List.Selected, table.find(List.Selected, opt))
-                else
-                    table.insert(List.Selected, opt)
-                end
-            else
-                List.Selected = {opt}
-            end
-            
-            Library.Flags[Flag] = Multi and List.Selected or List.Selected[1]
-            RenderOptions()
-            Callback(Library.Flags[Flag])
-        end)
-    end
-end
 
-function List:Add(opt)
-    -- ✅ 確保 Options 存在
-    if not self.Options or type(self.Options) ~= "table" then
-        self.Options = {}
+    function List:Refresh(new)
+        self.Options = new or {}
+        self.Selected = {}
+        Library.Flags[Flag] = Multi and {} or nil
+        RenderOptions()
+        UpdateTitle()
+        if isOpen then
+            ToggleDropdown(true)
+        end
+        Callback(Library.Flags[Flag])
     end
-    table.insert(self.Options, opt)
-    RenderOptions()
-end
 
-function List:Remove(opt)
-    -- ✅ 確保 Options 存在
-    if not self.Options or type(self.Options) ~= "table" then
-        return
-    end
-    local i = table.find(self.Options, opt)
-    if i then
-        table.remove(self.Options, i)
-    end
-    RenderOptions()
-end
-                function List:Add(opt) 
-                    table.insert(self.Options, opt) 
-                    RenderOptions() 
-                end
-                
-                function List:Remove(opt) 
-                    local i = table.find(self.Options, opt) 
-                    if i then 
-                        table.remove(self.Options, i) 
-                    end 
-                    RenderOptions() 
-                end
-                
-                function List:Refresh(new) 
-                    self.Options = new 
-                    self.Selected = {} 
-                    RenderOptions() 
-                end
-                
-                RenderOptions()
-                return List
+    return List
             end
+                
+                
 
             function Section:CreateColorpicker(Text, Default, Callback)
                 local Flag = Text:gsub("%s+", "")
