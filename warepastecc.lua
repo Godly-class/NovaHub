@@ -1,3 +1,4 @@
+-- have something see this? this is trash ui lib
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -327,15 +328,15 @@ function Library:CreateWindow(Title, Size)
     local List = {Selected = {}, Options = Options}
     Library.Flags[Flag] = Multi and {} or nil
 
-    -- 主容器
+    -- 主容器 (固定高度 30)
     local ListboxFrame = Create("Frame", {
         Parent = SecContent,
-        Size = UDim2.new(1, 0, 0, 30),  -- 固定標題高度
+        Size = UDim2.new(1, 0, 0, 30),
         BackgroundTransparency = 1,
         ClipsDescendants = false,
     })
 
-    -- 標題按鈕（可點擊）
+    -- 標題按鈕 (可點擊)
     local TitleBtn = Create("TextButton", {
         Parent = ListboxFrame,
         Size = UDim2.new(1, 0, 1, 0),
@@ -344,14 +345,10 @@ function Library:CreateWindow(Title, Size)
         BorderColor3 = Library.Theme.InnerOutline,
         Text = "",
         AutoButtonColor = false,
-        FontFace = Library.Font,
-        TextSize = 13,
-        TextColor3 = Library.Theme.Text,
-        TextXAlignment = "Left",
     })
     ApplyShadow(TitleBtn)
 
-    -- 標題文字（左側）
+    -- 標題文字
     local TitleLabel = Create("TextLabel", {
         Parent = TitleBtn,
         Text = "  " .. Text,
@@ -363,7 +360,7 @@ function Library:CreateWindow(Title, Size)
         TextXAlignment = "Left",
     })
 
-    -- 箭頭圖示（右側）
+    -- 箭頭 (▼ / ▲)
     local Arrow = Create("TextLabel", {
         Parent = TitleBtn,
         Text = "▼",
@@ -376,7 +373,7 @@ function Library:CreateWindow(Title, Size)
         TextXAlignment = "Center",
     })
 
-    -- 下拉容器（動畫用）
+    -- 下拉選單容器 (動畫用)
     local DropdownContainer = Create("Frame", {
         Parent = ListboxFrame,
         Size = UDim2.new(1, 0, 0, 0),
@@ -386,10 +383,10 @@ function Library:CreateWindow(Title, Size)
         BorderColor3 = Library.Theme.InnerOutline,
         ClipsDescendants = true,
         Visible = false,
-        ZIndex = 10,
+        ZIndex = 50,
     })
 
-    -- 內部滾動框（顯示選項）
+    -- 滾動框 (顯示選項)
     local DropdownScroller = Create("ScrollingFrame", {
         Parent = DropdownContainer,
         Size = UDim2.new(1, -2, 1, -2),
@@ -397,79 +394,107 @@ function Library:CreateWindow(Title, Size)
         BackgroundTransparency = 1,
         ScrollBarThickness = 2,
         ScrollBarImageColor3 = Library.Theme.Accent,
-        CanvasSize = UDim2.new(0,0,0,0),
-        AutomaticCanvasSize = "Y",
+        BorderSizePixel = 0,
+        ZIndex = 50,
+        -- 注意：這裡不要使用 AutomaticCanvasSize，改用手動計算
     })
-    Create("UIListLayout", {Parent = DropdownScroller, Padding = UDim.new(0, 2)})
+    local Layout = Create("UIListLayout", {
+        Parent = DropdownScroller,
+        Padding = UDim.new(0, 1)  -- 選項間距 1px
+    })
 
-    -- 狀態
+    -- 參數設定 (高度已調低)
     local isOpen = false
-    local maxHeight = 200  -- 最大展開高度，超過滾動
+    local maxHeight = 150          -- 最大展開高度
+    local optionHeight = 18        -- 每個選項高度
 
-    -- 更新標題文字（顯示當前選擇）
+    -- 更新標題文字
     local function UpdateTitle()
         local selected = List.Selected
         if #selected == 0 then
             TitleLabel.Text = "  " .. Text
         elseif Multi then
-            TitleLabel.Text = "  " .. Text .. " (" .. #selected .. " selected)"
+            TitleLabel.Text = "  " .. Text .. " (" .. #selected .. ")"
         else
             TitleLabel.Text = "  " .. Text .. ": " .. selected[1]
         end
     end
 
-    -- 渲染選項（重構下拉列表）
+    -- 渲染選項列表
     local function RenderOptions()
-        -- 清空舊選項
-        for _, child in ipairs(DropdownScroller:GetChildren()) do
+        -- 安全清除舊選項 (從後往前刪)
+        local children = DropdownScroller:GetChildren()
+        for i = #children, 1, -1 do
+            local child = children[i]
             if child:IsA("TextButton") then
                 child:Destroy()
             end
         end
 
-        -- 創建新選項
+        -- 取得當前選中狀態
+        local selectedList = Library.Flags[Flag]
+        if Multi and type(selectedList) ~= "table" then
+            selectedList = {}
+            Library.Flags[Flag] = selectedList
+        end
+
+        -- 建立新選項
         for _, opt in ipairs(List.Options) do
+            local isSelected = false
+            if Multi then
+                isSelected = table.find(selectedList, opt) ~= nil
+            else
+                isSelected = (selectedList == opt)
+            end
+
             local OptBtn = Create("TextButton", {
                 Parent = DropdownScroller,
-                Size = UDim2.new(1, 0, 0, 22),
+                Size = UDim2.new(1, 0, 0, optionHeight),
                 BackgroundTransparency = 1,
                 Text = "  " .. opt,
                 FontFace = Library.Font,
                 TextSize = 13,
-                TextColor3 = table.find(List.Selected, opt) and Library.Theme.Accent or Library.Theme.Text,
+                TextColor3 = isSelected and Library.Theme.Accent or Library.Theme.Text,
                 TextXAlignment = "Left",
                 AutoButtonColor = false,
+                ZIndex = 50,
             })
 
             OptBtn.Activated:Connect(function()
                 if Multi then
-                    local idx = table.find(List.Selected, opt)
+                    local idx = table.find(selectedList, opt)
                     if idx then
-                        table.remove(List.Selected, idx)
+                        table.remove(selectedList, idx)
                     else
-                        table.insert(List.Selected, opt)
+                        table.insert(selectedList, opt)
                     end
+                    Library.Flags[Flag] = selectedList
                 else
+                    Library.Flags[Flag] = opt
                     List.Selected = {opt}
-                    -- 單選：關閉下拉
-                    ToggleDropdown(false)
+                    ToggleDropdown(false)  -- 單選模式點完自動關閉
                 end
-
-                Library.Flags[Flag] = Multi and List.Selected or List.Selected[1]
                 UpdateTitle()
-                RenderOptions()  -- 刷新高亮
+                RenderOptions()            -- 刷新高亮
                 Callback(Library.Flags[Flag])
             end)
         end
-        -- 更新滾動框畫布高度
-        DropdownScroller.CanvasSize = UDim2.new(0,0,0, #List.Options * 24)
+
+        -- 手動計算 Canvas 高度 (確保選項確實出現)
+        local totalHeight = #List.Options * optionHeight + (#List.Options - 1) * 1
+        if totalHeight < 0 then totalHeight = 0 end
+        DropdownScroller.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
     end
 
-    -- 展開／收合動畫
+    -- 展開/收合動畫
     local function ToggleDropdown(open)
         isOpen = (open == nil) and not isOpen or open
-        local targetHeight = isOpen and math.min(#List.Options * 24, maxHeight) or 0
-        DropdownContainer.Visible = true
+        local targetHeight = 0
+        if isOpen then
+            local contentHeight = #List.Options * optionHeight + (#List.Options - 1) * 1
+            targetHeight = math.min(contentHeight, maxHeight)
+            DropdownContainer.Visible = true
+        end
         local tween = TweenService:Create(DropdownContainer, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Size = UDim2.new(1, 0, 0, targetHeight)
         })
@@ -482,28 +507,27 @@ function Library:CreateWindow(Title, Size)
         Arrow.Text = isOpen and "▲" or "▼"
     end
 
-    -- 點擊標題切換展開
+    -- 點擊標題切換
     TitleBtn.Activated:Connect(function()
-        ToggleDropdown()
         if isOpen then
-            RenderOptions()
+            ToggleDropdown(false)
+        else
+            RenderOptions()  -- 點開前重新繪製，確保與狀態同步
+            ToggleDropdown(true)
         end
     end)
-
-    -- 外部點擊關閉（可選：點擊非下拉區域）
-    -- 簡單起見，僅靠標題切換
 
     -- 初始化
     RenderOptions()
     UpdateTitle()
 
-    -- List 物件方法
+    -- 對外方法
     function List:Add(opt)
         table.insert(self.Options, opt)
         RenderOptions()
-        -- 若開啟中，保持顯示
         if isOpen then
-            ToggleDropdown(true)
+            local contentHeight = #List.Options * optionHeight + (#List.Options - 1) * 1
+            DropdownContainer.Size = UDim2.new(1, 0, 0, math.min(contentHeight, maxHeight))
         end
     end
 
@@ -511,17 +535,23 @@ function Library:CreateWindow(Title, Size)
         local i = table.find(self.Options, opt)
         if i then
             table.remove(self.Options, i)
-            -- 同時移除選中
-            local selIdx = table.find(self.Selected, opt)
-            if selIdx then
-                table.remove(self.Selected, selIdx)
-                Library.Flags[Flag] = Multi and self.Selected or self.Selected[1]
-                Callback(Library.Flags[Flag])
+            if Multi then
+                local sel = Library.Flags[Flag] or {}
+                local idx = table.find(sel, opt)
+                if idx then table.remove(sel, idx) end
+                Library.Flags[Flag] = sel
+            else
+                if Library.Flags[Flag] == opt then
+                    Library.Flags[Flag] = nil
+                    List.Selected = {}
+                end
             end
             RenderOptions()
             UpdateTitle()
+            Callback(Library.Flags[Flag])
             if isOpen then
-                ToggleDropdown(true)
+                local contentHeight = #List.Options * optionHeight + (#List.Options - 1) * 1
+                DropdownContainer.Size = UDim2.new(1, 0, 0, math.min(contentHeight, maxHeight))
             end
         end
     end
@@ -532,16 +562,15 @@ function Library:CreateWindow(Title, Size)
         Library.Flags[Flag] = Multi and {} or nil
         RenderOptions()
         UpdateTitle()
-        if isOpen then
-            ToggleDropdown(true)
-        end
         Callback(Library.Flags[Flag])
+        if isOpen then
+            local contentHeight = #List.Options * optionHeight + (#List.Options - 1) * 1
+            DropdownContainer.Size = UDim2.new(1, 0, 0, math.min(contentHeight, maxHeight))
+        end
     end
 
     return List
             end
-                
-                
 
             function Section:CreateColorpicker(Text, Default, Callback)
                 local Flag = Text:gsub("%s+", "")
