@@ -300,7 +300,7 @@ function Library:CreateWindow(Title, Size)
     local ValueBox = Create("TextBox", {
         Parent = Sld,
         Size = UDim2.new(0, 50, 0, 16),
-        Position = UDim2.new(1, -55, 0, 18),  -- 靠右，Y 在軌道上方
+        Position = UDim2.new(1, -55, 0, 50),  -- 靠右，Y 在軌道上方
         BackgroundColor3 = Library.Theme.SectionInlay,
         BorderSizePixel = 1,
         BorderColor3 = Library.Theme.InnerOutline,
