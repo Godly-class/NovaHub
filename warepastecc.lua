@@ -1,3 +1,4 @@
+--have anyone see that? this ui lib is shit
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -259,102 +260,119 @@ function Library:CreateWindow(Title, Size)
             end
 
             function Section:CreateSlider(Text, Min, Max, Default, Suffix, Callback)
-                local Flag = Text:gsub("%s+", "")
-                Library.Flags[Flag] = Default
-                local Sld = Create("Frame", {
-                    Parent = SecContent, 
-                    Size = UDim2.new(1, 0, 0, 30), 
-                    BackgroundTransparency = 1
-                })
-                Create("TextLabel", {
-                    Parent = Sld, 
-                    Text = Text, 
-                    Size = UDim2.new(1, 0, 0, 16), 
-                    BackgroundTransparency = 1, 
-                    TextColor3 = Library.Theme.Text, 
-                    FontFace = Library.Font, 
-                    TextSize = 13, 
-                    TextXAlignment = "Left"
-                })
-                local Tray = Create("Frame", {
-                    Parent = Sld, 
-                    Size = UDim2.new(1, 0, 0, 4), 
-                    Position = UDim2.new(0, 0, 0, 20), 
-                    BackgroundColor3 = Library.Theme.SectionInlay, 
-                    BorderSizePixel = 1, 
-                    BorderColor3 = Library.Theme.InnerOutline
-                })
-                ApplyShadow(Tray)
-                local Fill = Create("Frame", {
-                    Parent = Tray, 
-                    Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0), 
-                    BackgroundColor3 = Library.Theme.Accent, 
-                    BorderSizePixel = 0
-                })
-                ApplyShadow(Fill)
-                local ValueText = Create("TextLabel", {
-                    Parent = Sld, 
-                    Text = tostring(Default) .. Suffix, 
-                    Size = UDim2.new(0, 0, 0, 12), 
-                    Position = UDim2.new((Default - Min) / (Max - Min), 0, 0, 22), 
-                    AnchorPoint = Vector2.new(0.5, 0), 
-                    BackgroundTransparency = 1, 
-                    TextColor3 = Color3.new(1, 1, 1), 
-                    FontFace = Library.Font, 
-                    TextSize = 10, 
-                    ZIndex = 10, 
-                    AutomaticSize = "X"
-                })
-                local function Update(input)
-                    local pos = math.clamp((input.Position.X - Tray.AbsolutePosition.X) / Tray.AbsoluteSize.X, 0, 1)
-                    local val = math.round((Min + (Max - Min) * pos) * 100) / 100
-                    Fill.Size = UDim2.new(pos, 0, 1, 0)
-                    ValueText.Position = UDim2.new(pos, 0, 0, 22)
-                    ValueText.Text = tostring(val) .. Suffix
-                    Library.Flags[Flag] = val
-                    Callback(val)
-                end
-                local dragging = false
-                Tray.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true Update(i) end end)
-                UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then Update(i) end end)
-                UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
-                return {Set = function(val) local pos = (val - Min) / (Max - Min) Fill.Size = UDim2.new(pos, 0, 1, 0) ValueText.Position = UDim2.new(pos, 0, 0, 22) ValueText.Text = tostring(val) .. Suffix Library.Flags[Flag] = val Callback(val) end}
-            end
+    local Flag = Text:gsub("%s+", "")
+    Library.Flags[Flag] = Default
+    local Sld = Create("Frame", {
+        Parent = SecContent,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1
+    })
+    Create("TextLabel", {
+        Parent = Sld,
+        Text = Text,
+        Size = UDim2.new(1, 0, 0, 16),
+        BackgroundTransparency = 1,
+        TextColor3 = Library.Theme.Text,
+        FontFace = Library.Font,
+        TextSize = 13,
+        TextXAlignment = "Left"
+    })
 
-            function Section:CreateListbox(Text, Options, Multi, Callback)
-                local Flag = Text:gsub("%s+", "")
-                local List = {Selected = {}, Options = Options}
-                Library.Flags[Flag] = Multi and {} or nil
-                
-                local ListboxFrame = Create("Frame", {
-                    Parent = SecContent, 
-                    Size = UDim2.new(1, 0, 0, 120), 
-                    BackgroundTransparency = 1
-                })
-                
-                Create("TextLabel", {
-                    Parent = ListboxFrame, 
-                    Text = Text, 
-                    Size = UDim2.new(1, 0, 0, 16), 
-                    BackgroundTransparency = 1, 
-                    TextColor3 = Library.Theme.Text, 
-                    FontFace = Library.Font, 
-                    TextSize = 13, 
-                    TextXAlignment = "Left"
-                })
-                
-                local Tray = Create("ScrollingFrame", {
-                    Parent = ListboxFrame, 
-                    Size = UDim2.new(1, 0, 0, 100), 
-                    Position = UDim2.new(0, 0, 0, 16), 
-                    BackgroundColor3 = Library.Theme.SectionInlay, 
-                    BorderSizePixel = 1, 
-                    BorderColor3 = Library.Theme.InnerOutline, 
-                    CanvasSize = UDim2.new(0,0,0,0), 
-                    AutomaticCanvasSize = "Y", 
-                    ScrollBarThickness = 2, 
-                    ScrollBarImageColor3 = Library.Theme.Accent
-                })
+    local Tray = Create("Frame", {
+        Parent = Sld,
+        Size = UDim2.new(1, 0, 0, 4),
+        Position = UDim2.new(0, 0, 0, 20),
+        BackgroundColor3 = Library.Theme.SectionInlay,
+        BorderSizePixel = 1,
+        BorderColor3 = Library.Theme.InnerOutline
+    })
+    ApplyShadow(Tray)
+
+    local Fill = Create("Frame", {
+        Parent = Tray,
+        Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0),
+        BackgroundColor3 = Library.Theme.Accent,
+        BorderSizePixel = 0
+    })
+    ApplyShadow(Fill)
+
+    -- 改為 TextBox，固定位置在滑條右側上方
+    local ValueBox = Create("TextBox", {
+        Parent = Sld,
+        Size = UDim2.new(0, 50, 0, 16),
+        Position = UDim2.new(1, -55, 0, 18),  -- 靠右，Y 在軌道上方
+        BackgroundColor3 = Library.Theme.SectionInlay,
+        BorderSizePixel = 1,
+        BorderColor3 = Library.Theme.InnerOutline,
+        Text = tostring(Default) .. Suffix,
+        TextColor3 = Library.Theme.Text,
+        FontFace = Library.Font,
+        TextSize = 11,
+        TextXAlignment = "Center",
+        TextYAlignment = "Center",
+        ClearTextOnFocus = false,
+        ClipsDescendants = true,
+        ZIndex = 10
+    })
+    ApplyShadow(ValueBox)  -- 可選
+
+    -- 內部更新函數（拖動與 Set 共用）
+    local function UpdateSlider(val)
+        val = math.clamp(val, Min, Max)
+        local pos = (val - Min) / (Max - Min)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        ValueBox.Text = tostring(val) .. Suffix
+        Library.Flags[Flag] = val
+        Callback(val)
+    end
+
+    -- 滑塊拖動事件
+    local dragging = false
+    Tray.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            local function update(input)
+                local pos = math.clamp((input.Position.X - Tray.AbsolutePosition.X) / Tray.AbsoluteSize.X, 0, 1)
+                local val = math.round((Min + (Max - Min) * pos) * 100) / 100
+                UpdateSlider(val)
+            end
+            update(i) -- 立即更新一次
+            local con
+            con = UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    update(input)
+                end
+            end)
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                    if con then con:Disconnect() end
+                end
+            end)
+        end
+    end)
+
+    -- TextBox 編輯同步
+    ValueBox.FocusLost:Connect(function(enterPressed)
+        -- 若按下 Enter 或失去焦點（可根據需求只保留 enterPressed）
+        local text = ValueBox.Text
+        -- 提取數值部分（移除可能存在的後綴）
+        local num = tonumber(text:match("[%d.]+"))
+        if num then
+            UpdateSlider(num)
+        else
+            -- 無效輸入，恢復為當前儲存值
+            ValueBox.Text = tostring(Library.Flags[Flag]) .. Suffix
+        end
+    end)
+
+    -- 回傳操作方法
+    return {
+        Set = function(val)
+            UpdateSlider(val)
+        end
+    }
+            end
                 
                 Create("UIListLayout", {Parent = Tray})
                 
