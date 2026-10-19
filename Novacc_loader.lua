@@ -1,4 +1,4 @@
--- This file was generated at discord.gg/syncrypt
+
 
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
